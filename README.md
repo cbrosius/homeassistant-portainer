@@ -1,4 +1,6 @@
-# Portainer integration for Home Assistant (based on the work of @tomaae)
+# Portainer integration for Home Assistant
+(based on the work of @tomaae)
+
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/cbrosius/homeassistant-portainer?style=plastic)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=plastic)](https://github.com/hacs/integration)
 ![Project Stage](https://img.shields.io/badge/project%20stage-development-yellow.svg?style=plastic)
@@ -10,7 +12,7 @@
 
 [![Help localize](https://img.shields.io/badge/lokalise-join-green?style=plastic&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyhpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTQ1IDc5LjE2MzQ5OSwgMjAxOC8wOC8xMy0xNjo0MDoyMiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6REVCNzgzOEY4NDYxMTFFQUIyMEY4Njc0NzVDOUZFMkMiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6REVCNzgzOEU4NDYxMTFFQUIyMEY4Njc0NzVDOUZFMkMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTcgKE1hY2ludG9zaCkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDozN0ZDRUY4Rjc0M0UxMUU3QUQ2MDg4M0Q0MkE0NjNCNSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDozN0ZDRUY5MDc0M0UxMUU3QUQ2MDg4M0Q0MkE0NjNCNSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pjs1zyIAAABVSURBVHjaYvz//z8DOYCJgUxAtkYW9+mXyXIrI7l+ZGHc0k5nGxkupdHZxve1yQR1CjbPZURXh9dGoGJZIPUI2QC4JEgjIfyuJuk/uhgj3dMqQIABAPEGTZ/+h0kEAAAAAElFTkSuQmCC)](https://app.lokalise.com/public/892665226456f113e0a814.16864793/)
 
-![English](https://raw.githubusercontent.com/cbrosius/homeassistant-mikrotik_router/master/docs/assets/images/flags/us.png)
+![English](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/flags/us.png)
 
 ![Portainer Logo](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/logo.png)
 
@@ -23,12 +25,25 @@ Features:
 
 # Features
 ## Endpoints
-List of portainer endpoint.
-
+For each endpoint configured in Portainer, a dedicated Home Assistant device is created. This device represents the Portainer endpoint itself, providing details such as its name, the Docker version it manages, and a link to its configuration URL within Portainer. All containers associated with this endpoint, will use this device as their parent. This way, the containers will be listed as Connected devices in the endpoint-device.
+ 
 ![Endpoints](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/endpoints.png)
 
 ## Containers
-List of containers.
+For each container managed by a Portainer endpoint, a corresponding Home Assistant device is created. This device is automatically linked to its parent endpoint device, making it easy to see which containers belong to which environment.
+
+The container device provides a central place to monitor its status and details. Key information and controls include:
+
+*   **State Sensor**: The primary sensor shows the container's current state (e.g., `running`, `stopped`, `exited`). For running containers with a health check, the state will be more descriptive (e.g., `running (healthy)`).
+*   **Detail Sensors**: Additional sensors are created to provide more granular information, such as:
+    *   IP Address
+    *   Published Ports
+    *   Image ID
+    *   Start Time and Creation Date
+    *   Compose Stack and Service names (if applicable)
+    *   Health Status (if enabled)
+    *   Restart Policy (if enabled)
+*   **Controls**: You can control the container directly from Home Assistant using the `portainer.perform_container_action` service. This allows you to `start`, `stop`, `restart`, or `kill` one or more containers, which is perfect for automations and scripts.
 
 ![Containers](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/containers.png)
 

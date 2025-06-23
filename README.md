@@ -71,6 +71,9 @@ data:
     - device_id: a0e2c2f2e7b1a4d5c6f7e8d9c0b1a2c3 # Replace with your container's device_id
 ```
 
+As an alternative, you can use the UI to perform this action.
+
+![Perform Container Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/service.png)
 
 # Install integration
 This integration is distributed using [HACS](https://hacs.xyz/).

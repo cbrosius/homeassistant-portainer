@@ -92,7 +92,33 @@ data:
 
 As an alternative, you can use the UI to perform this action.
 
-![Perform Container Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/service.png)
+![Perform Container Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/container_action.png)
+
+## `portainer.perform_stack_action`
+This service allows you to perform actions on an entire stack, such as starting or stopping all containers within it.
+
+### Service Data Attributes:
+*   **`action`** (Required): The action to perform.
+    *   Possible values: `start`, `stop`
+*   **`stack_devices`** (Required): A list of Home Assistant device IDs corresponding to the stacks you wish to control.
+
+### Example Usage:
+To use this service, you'll need the Home Assistant `device_id` of the stack(s) you want to control. You can find this by navigating to the device page in Home Assistant (Settings -> Devices & Services -> Devices, then select your stack device) or by inspecting the device in Developer Tools -> States.
+
+Here's an example of how to stop a specific stack using this service in a Home Assistant automation or script:
+
+```yaml
+service: portainer.perform_stack_action
+data:
+  action: stop
+  stack_devices:
+    - device_id: b1f3d3a3f8c2b5e6d7a8b9c0d1e2f3a4 # Replace with your stack's device_id
+```
+
+As an alternative, you can use the UI to perform this action.
+
+![Perform Container Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/stack_action.png)
+
 
 # Install integration
 This integration is distributed using [HACS](https://hacs.xyz/).

@@ -20,9 +20,17 @@
 Monitor and control Portainer from Home Assistant.
 
 Features:
-* List Endpoints
-* List Containers
-* List Stacks
+* Get Portainer-Endpoints and create a device for each endpoint
+* Get Containers per Endpoint and create a device for each container
+    * provide buttons to control containers
+    * provide sensors to monitor container status
+    * provide sensors to monitor container details
+    * set the 'Connected via' Attribute in the devices to handle dependencies correct
+* Get Stacks per Endpoint and create a device for each stack
+    * provide buttons to control stacks
+    * provide sensors to monitor stack status
+    * provide sensors to monitor stack details
+
 
 # Features
 ## Endpoints

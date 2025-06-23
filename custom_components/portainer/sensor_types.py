@@ -43,6 +43,11 @@ DEVICE_ATTRIBUTES_CONTAINERS = [
     CUSTOM_ATTRIBUTE_ARRAY,
 ]
 
+DEVICE_ATTRIBUTES_STACKS = [
+    "EndpointId",
+    "Type",
+]
+
 
 @dataclass(kw_only=True)
 class PortainerSensorEntityDescription(SensorEntityDescription):
@@ -89,6 +94,20 @@ SENSOR_TYPES: tuple[PortainerSensorEntityDescription, ...] = (
         data_reference="Id",
         data_attributes_list=DEVICE_ATTRIBUTES_CONTAINERS,
         func="ContainerSensor",
+    ),
+    PortainerSensorEntityDescription(
+        key="stacks",
+        name="Status",
+        icon="mdi:stack-overflow",
+        entity_category=None,
+        ha_group="data__EndpointId",
+        data_path="stacks",
+        data_attribute="Status",
+        data_name="Name",
+        data_uid="",
+        data_reference="Id",
+        data_attributes_list=DEVICE_ATTRIBUTES_STACKS,
+        func="StackSensor",
     ),
 )
 

@@ -67,6 +67,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.raw_data = {
             "endpoints": {},
             "containers": {},
+            "stacks": {},
         }
 
         self.lock = Asyncio_lock()
@@ -103,6 +104,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             self.raw_data = {}
             await self.hass.async_add_executor_job(self.get_endpoints)
             await self.hass.async_add_executor_job(self.get_containers)
+            await self.hass.async_add_executor_job(self.get_stacks)
 
             # Create/update endpoint devices in the registry before entities are created.
             # This prevents race conditions where a container device is created before
@@ -123,6 +125,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
 
         self.lock.release()
+        self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
         _LOGGER.debug("data: %s", self.raw_data)
         return self.raw_data
 
@@ -309,3 +312,25 @@ class PortainerCoordinator(DataUpdateCoordinator):
             for eid, t_dict in self.raw_data["containers"].items()
             for cid, value in t_dict.items()
         }
+
+    # ---------------------------
+    #   get_stacks
+    # ---------------------------
+    def get_stacks(self) -> None:
+        """Get stacks."""
+        self.raw_data["stacks"] = {}
+        self.raw_data["stacks"] = parse_api(
+            data={},
+            source=self.api.query("stacks"),
+            key="Id",
+            vals=[
+                {"name": "Id", "default": 0},
+                {"name": "Name", "default": "unknown"},
+                {"name": "EndpointId", "default": 0},
+                {"name": "Type", "default": 0},
+                {"name": "Status", "default": 0},
+            ],
+            ensure_vals=[
+                {"name": "ConfigEntryId", "default": self.config_entry_id},
+            ],
+        )

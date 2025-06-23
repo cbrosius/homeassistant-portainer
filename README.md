@@ -25,7 +25,14 @@ Features:
 
 # Features
 ## Endpoints
-For each endpoint configured in Portainer, a dedicated Home Assistant device is created. This device represents the Portainer endpoint itself, providing details such as its name, the Docker version it manages, and a link to its configuration URL within Portainer. All containers associated with this endpoint, will use this device as their parent. This way, the containers will be listed as Connected devices in the endpoint-device.
+For each endpoint configured in Portainer, a dedicated Home Assistant device is created. This device represents the Portainer endpoint itself and acts as a parent for all container devices running on it.
+
+The endpoint device provides key details and sensors, including:
+*   **Details**: Endpoint name, Docker version, and a direct link to its configuration URL in Portainer.
+*   **Sensors**:
+    *   Reachability status
+    *   Counts for unhealthy and stopped containers
+    *   Totals for images, volumes, and stacks
  
 ![Endpoints](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/endpoints.png)
 

@@ -13,7 +13,7 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import (
-    entity_platform as ep,
+    device_registry as dr, entity_platform as ep
 )
 from homeassistant.helpers.typing import StateType
 
@@ -97,6 +97,7 @@ async def async_setup_entry(
         "PortainerSensor": PortainerSensor,
         "EndpointSensor": EndpointSensor,
         "ContainerSensor": ContainerSensor,
+        "StackSensor": StackSensor,
     }
 
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
@@ -204,7 +205,7 @@ class EndpointSensor(PortainerSensor):
         endpoint_id = self._data.get("Id")
         name = self._data.get("Name", "Unknown")
         return {
-            "identifiers": {("portainer", str(endpoint_id))},
+            "identifiers": {(DOMAIN, str(endpoint_id))},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Endpoint",
@@ -286,11 +287,69 @@ class ContainerSensor(PortainerSensor):
         if name.startswith("/"):
             name = name[1:]
         return {
-            "identifiers": {("portainer", container_id)},
+            "identifiers": {(DOMAIN, container_id)},
             "name": name,
             "manufacturer": "Portainer",
-            "model": self._data.get("Image", "Unknown"),
+            "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": ("portainer", str(endpoint_id)) if endpoint_id else None,
+            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "configuration_url": self.coordinator.api._url.rstrip("/api/"),
+        }
+
+
+# ---------------------------
+#   StackSensor
+# ---------------------------
+class StackSensor(PortainerSensor):
+    """Define a Portainer Stack sensor."""
+
+    def __init__(
+        self,
+        coordinator: PortainerCoordinator,
+        description,
+        uid: str | None = None,
+    ):
+        """Initialize the sensor."""
+        super().__init__(coordinator, description, uid)
+        self.entity_description = description
+        self.sw_version = None
+        if self._data.get("EndpointId") in self.coordinator.data.get("endpoints", {}):
+            self.sw_version = self.coordinator.data["endpoints"][
+                self._data["EndpointId"]
+            ].get("DockerVersion")
+
+    @property
+    def native_value(self) -> StateType | date | datetime | Decimal:
+        """Return the value reported by the sensor."""
+        status = self._data.get(self.entity_description.data_attribute)
+        if status == 1:
+            return "active"
+        if status == 2:
+            return "inactive"
+        return "unknown"
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attrs = {}
+        stack_type = self._data.get("Type")
+        attrs["type"] = "Swarm" if stack_type == 1 else "Compose"
+        attrs["endpoint_id"] = self._data.get("EndpointId")
+        return attrs
+
+    @property
+    def device_info(self):
+        """Return device information for this stack."""
+        stack_id = self._data.get("Id")
+        endpoint_id = self._data.get("EndpointId")
+        name = self._data.get("Name", "Unknown")
+
+        return {
+            "identifiers": {(DOMAIN, f"stack_{stack_id}")},
+            "name": name,
+            "manufacturer": "Portainer",
+            "model": "Stack",
+            "sw_version": self.sw_version,
+            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

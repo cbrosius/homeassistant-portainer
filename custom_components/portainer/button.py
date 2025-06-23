@@ -86,6 +86,30 @@ BUTTON_TYPES: tuple[PortainerButtonEntityDescription, ...] = (
         action="kill",
         supported_states=["running"],
     ),
+    PortainerButtonEntityDescription(
+        key="start_stack",
+        name="Start",
+        icon="mdi:play",
+        ha_group="data__EndpointId",
+        data_path="stacks",
+        data_name="Name",
+        data_reference="Id",
+        func="StackActionButton",
+        action="start",
+        supported_states=["inactive"], # Stack status: 1=active, 2=inactive
+    ),
+    PortainerButtonEntityDescription(
+        key="stop_stack",
+        name="Stop",
+        icon="mdi:stop",
+        ha_group="data__EndpointId",
+        data_path="stacks",
+        data_name="Name",
+        data_reference="Id",
+        func="StackActionButton",
+        action="stop",
+        supported_states=["active"], # Stack status: 1=active, 2=inactive
+    ),
 )
 
 
@@ -99,6 +123,7 @@ async def async_setup_entry(
 
     dispatcher = {
         "ContainerActionButton": ContainerActionButton,
+        "StackActionButton": StackActionButton,
     }
 
     entities = await async_create_sensors(coordinator, BUTTON_TYPES, dispatcher)
@@ -195,11 +220,102 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
         if name.startswith("/"):
             name = name[1:]
         return {
-            "identifiers": {("portainer", container_id)},
+            "identifiers": {(DOMAIN, container_id)},
             "name": name,
             "manufacturer": "Portainer",
-            "model": self._data.get("Image", "Unknown"),
+            "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": ("portainer", str(endpoint_id)) if endpoint_id else None,
+            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "configuration_url": self.coordinator.api._url.rstrip("/api/"),
+        }
+
+
+class StackActionButton(PortainerEntity, ButtonEntity):
+    """Defines a Portainer Stack Action button."""
+
+    def __init__(
+        self,
+        coordinator: PortainerCoordinator,
+        description: PortainerButtonEntityDescription,
+        uid: str | None = None,
+    ):
+        """Initialize the button."""
+        super().__init__(coordinator, description, uid)
+        self.entity_description = description
+        self.sw_version = None
+        if self._data.get("EndpointId") in self.coordinator.data.get("endpoints", {}):
+            self.sw_version = self.coordinator.data["endpoints"][
+                self._data["EndpointId"]
+            ].get("DockerVersion")
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the button."""
+        return self.entity_description.name
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        if not super().available:
+            return False
+
+        if not self.entity_description.supported_states:
+            return True
+
+        # Stack status: 1=active, 2=inactive
+        stack_status_code = self._data.get("Status")
+        stack_status_str = "unknown"
+        if stack_status_code == 1:
+            stack_status_str = "active"
+        elif stack_status_code == 2:
+            stack_status_str = "inactive"
+
+        return stack_status_str in self.entity_description.supported_states
+
+    async def async_press(self) -> None:
+        """Handle the button press to perform action on the stack."""
+        endpoint_id = self._data.get("EndpointId")
+        stack_id = self._data.get("Id")
+        action = self.entity_description.action
+
+        if not endpoint_id or not stack_id or not action:
+            _LOGGER.error(
+                "Could not perform action on stack, missing endpoint, stack id, or action"
+            )
+            return
+
+        # The service path for stack actions is different from containers
+        # Based on _handle_perform_stack_action in __init__.py
+        # The endpointId needs to be a query parameter for stack actions
+        service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
+        method = "post"  # Start/Stop are POST requests
+
+        try:
+            await self.hass.async_add_executor_job(
+                self.coordinator.api.query,
+                service_path,
+                method,
+                {},
+            )
+            _LOGGER.info("Successfully performed '%s' on stack '%s'", action, stack_id)
+        except Exception as e:
+            _LOGGER.error("Failed to perform '%s' on stack '%s': %s", action, stack_id, e)
+
+        await self.coordinator.async_request_refresh()
+
+    @property
+    def device_info(self):
+        """Return device information for this stack."""
+        stack_id = self._data.get("Id")
+        endpoint_id = self._data.get("EndpointId")
+        name = self._data.get("Name", "Unknown")
+
+        return {
+            "identifiers": {(DOMAIN, f"stack_{stack_id}")}, # Matches StackSensor
+            "name": name,
+            "manufacturer": "Portainer",
+            "model": "Stack",
+            "sw_version": self.sw_version,
+            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

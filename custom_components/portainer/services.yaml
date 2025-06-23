@@ -23,3 +23,28 @@ perform_container_action:
           multiple: true
           filter:
             integration: portainer
+            model: Container
+
+perform_stack_action:
+  name: Perform Stack Action
+  description: Performs a specified action (start, stop) on one or more stacks.
+  fields:
+    action:
+      name: Action
+      description: The action to perform on the stacks.
+      required: true
+      selector:
+        select:
+          options:
+            - start
+            - stop
+    stack_devices:
+      name: Stack Devices
+      description: A list of Portainer stack devices to perform the action on.
+      required: true
+      selector:
+        device:
+          multiple: true
+          filter:
+            integration: portainer
+            model: Stack

@@ -47,6 +47,31 @@ The container device provides a central place to monitor its status and details.
 
 ![Containers](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/containers.png)
 
+# Services
+The Portainer integration exposes a service to allow direct control over your containers from Home Assistant automations and scripts.
+
+## `portainer.perform_container_action`
+This service allows you to perform actions like starting, stopping, restarting, or killing one or more containers managed by your Portainer instance.
+
+### Service Data Attributes:
+*   **`action`** (Required): The action to perform.
+    *   Possible values: `start`, `stop`, `restart`, `kill`
+*   **`container_devices`** (Required): A list of Home Assistant device IDs corresponding to the containers you wish to control.
+
+### Example Usage:
+To use this service, you'll need the Home Assistant `device_id` of the container(s) you want to control. You can find this by navigating to the device page in Home Assistant (Settings -> Devices & Services -> Devices, then select your container device) or by inspecting the device in Developer Tools -> States.
+
+Here's an example of how to stop a specific container using this service in a Home Assistant automation or script:
+
+```yaml
+service: portainer.perform_container_action
+data:
+  action: stop
+  container_devices:
+    - device_id: a0e2c2f2e7b1a4d5c6f7e8d9c0b1a2c3 # Replace with your container's device_id
+```
+
+
 # Install integration
 This integration is distributed using [HACS](https://hacs.xyz/).
 

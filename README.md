@@ -22,6 +22,7 @@ Monitor and control Portainer from Home Assistant.
 Features:
 * List Endpoints
 * List Containers
+* List Stacks
 
 # Features
 ## Endpoints
@@ -54,8 +55,19 @@ The container device provides a central place to monitor its status and details.
 
 ![Containers](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/containers.png)
 
+## Stacks
+For each stack defined in a Portainer endpoint, a corresponding Home Assistant device is created. This device is linked to its parent endpoint device.
+
+The stack device provides sensors to monitor its status and composition. Key information includes:
+*   **State Sensor**: The primary sensor shows the stack's current state (e.g., `active`, `inactive`, `limited`).
+*   **Detail Sensors**:
+    *   Container Count: The number of containers running as part of this stack.
+*   **Controls**: You can manage the stack directly from Home Assistant using the `portainer.perform_stack_action` service. This allows you to `start`, `stop` the entire stack.
+
+![Stacks](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/stacks.png)
+
 # Services
-The Portainer integration exposes a service to allow direct control over your containers from Home Assistant automations and scripts.
+The Portainer integration exposes services to allow direct control over your containers and stacks from Home Assistant automations and scripts.
 
 ## `portainer.perform_container_action`
 This service allows you to perform actions like starting, stopping, restarting, or killing one or more containers managed by your Portainer instance.

@@ -135,3 +135,24 @@ class PortainerAPI(object):
     def error(self):
         """Return error."""
         return self._error
+
+    # ---------------------------
+    #   get_all_containers
+    # ---------------------------
+    def get_all_containers(self) -> list:
+        """Get all containers from all known Portainer endpoints."""
+        containers = []
+        endpoints = self.query("endpoints")
+        if not endpoints:
+            _LOGGER.warning("No endpoints found or unable to fetch endpoints.")
+            return containers
+        for endpoint in endpoints:
+            endpoint_id = endpoint.get("Id")
+            if not endpoint_id:
+                continue
+            endpoint_containers = self.query(
+                f"endpoints/{endpoint_id}/docker/containers/json"
+            )
+            if endpoint_containers:
+                containers.extend(endpoint_containers)
+        return containers

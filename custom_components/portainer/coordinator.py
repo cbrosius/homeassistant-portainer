@@ -7,6 +7,7 @@ from datetime import timedelta
 from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import device_registry as dr
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -15,9 +16,7 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
 
 from .const import (
     DOMAIN,
@@ -44,11 +43,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize PortainerController."""
         super().__init__(
-            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=SCAN_INTERVAL)
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_{config_entry.entry_id}",
+            update_interval=timedelta(seconds=SCAN_INTERVAL),
         )
         self.hass = hass
         self.name = config_entry.data[CONF_NAME]
         self.host = config_entry.data[CONF_HOST]
+        self.config_entry_id = config_entry.entry_id
 
         # init custom features
         self.features = {
@@ -60,7 +63,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
             ),
         }
 
-        self.data = {
+        # init raw data
+        self.raw_data = {
             "endpoints": {},
             "containers": {},
         }
@@ -96,22 +100,40 @@ class PortainerCoordinator(DataUpdateCoordinator):
             return
 
         try:
+            self.raw_data = {}
             await self.hass.async_add_executor_job(self.get_endpoints)
             await self.hass.async_add_executor_job(self.get_containers)
+
+            # Create/update endpoint devices in the registry before entities are created.
+            # This prevents race conditions where a container device is created before
+            # its parent endpoint device.
+            device_registry = dr.async_get(self.hass)
+            for eid, endpoint_data in self.raw_data.get("endpoints", {}).items():
+                device_registry.async_get_or_create(
+                    config_entry_id=self.config_entry.entry_id,
+                    identifiers={(DOMAIN, str(eid))},
+                    name=endpoint_data.get("Name", "Unknown"),
+                    manufacturer="Portainer",
+                    model="Endpoint",
+                    sw_version=endpoint_data.get("DockerVersion"),
+                    configuration_url=self.api._url.rstrip("/api/"),
+                )
         except Exception as error:
             self.lock.release()
             raise UpdateFailed(error) from error
 
         self.lock.release()
-        async_dispatcher_send(self.hass, "update_sensors", self)
-        return self.data
+        _LOGGER.debug("data: %s", self.raw_data)
+        return self.raw_data
 
     # ---------------------------
     #   get_endpoints
     # ---------------------------
     def get_endpoints(self) -> None:
         """Get endpoints."""
-        self.data["endpoints"] = parse_api(
+
+        self.raw_data["endpoints"] = {}
+        self.raw_data["endpoints"] = parse_api(
             data={},
             source=self.api.query("endpoints"),
             key="Id",
@@ -123,13 +145,13 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 {"name": "Status", "default": 0},
             ],
         )
-        if not self.data["endpoints"]:
+        if not self.raw_data["endpoints"]:
             return
 
-        for uid in self.data["endpoints"]:
-            self.data["endpoints"][uid] = parse_api(
-                data=self.data["endpoints"][uid],
-                source=self.data["endpoints"][uid]["Snapshots"][0],
+        for eid in self.raw_data["endpoints"]:
+            self.raw_data["endpoints"][eid] = parse_api(
+                data=self.raw_data["endpoints"][eid],
+                source=self.raw_data["endpoints"][eid]["Snapshots"][0],
                 vals=[
                     {"name": "DockerVersion", "default": "unknown"},
                     {"name": "Swarm", "default": False},
@@ -143,20 +165,21 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     {"name": "ImageCount", "default": 0},
                     {"name": "ServiceCount", "default": 0},
                     {"name": "StackCount", "default": 0},
+                    {"name": "ConfigEntryId", "default": self.config_entry_id},
                 ],
             )
-
-        del self.data["endpoints"][uid]["Snapshots"]
+            del self.raw_data["endpoints"][eid]["Snapshots"]
 
     # ---------------------------
     #   get_containers
     # ---------------------------
     def get_containers(self) -> None:
-        self.data["containers"] = {}
-        for eid in self.data["endpoints"]:
-            if self.data["endpoints"][eid]["Status"] == 1:
-                self.data["containers"] = parse_api(
-                    data=self.data["containers"],
+        self.raw_data["containers"] = {}
+        for eid in self.raw_data["endpoints"]:
+            if self.raw_data["endpoints"][eid]["Status"] == 1:
+                self.raw_data["containers"][eid] = {}
+                self.raw_data["containers"][eid] = parse_api(
+                    data=self.raw_data["containers"][eid],
                     source=self.api.query(
                         f"endpoints/{eid}/docker/containers/json", "get", {"all": True}
                     ),
@@ -167,11 +190,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"name": "Image", "default": "unknown"},
                         {"name": "State", "default": "unknown"},
                         {"name": "Ports", "default": "unknown"},
-                        {
-                            "name": "Network",
-                            "source": "HostConfig/NetworkMode",
-                            "default": "unknown",
-                        },
+                        {"name": "Created", "default": 0, "convert": "utc_from_timestamp"},
                         {
                             "name": "Compose_Stack",
                             "source": "Labels/com.docker.compose.project",
@@ -191,62 +210,102 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     ensure_vals=[
                         {"name": "Name", "default": "unknown"},
                         {"name": "EndpointId", "default": eid},
-                        {"name": CUSTOM_ATTRIBUTE_ARRAY, "default": {}},
+                        {"name": CUSTOM_ATTRIBUTE_ARRAY, "default": None},
                     ],
                 )
-                for cid in self.data["containers"]:
-                    self.data["containers"][cid]["Environment"] = self.data["endpoints"][
-                        eid
-                    ]["Name"]
-                    self.data["containers"][cid]["Name"] = self.data["containers"][cid][
-                        "Names"
-                    ][0][1:]
-                # only if some custom feature is enabled
-                if (
-                    self.features[CONF_FEATURE_HEALTH_CHECK]
-                    or self.features[CONF_FEATURE_RESTART_POLICY]
-                ):
-                    for cid in self.data["containers"]:
-                        self.data["containers"][cid][CUSTOM_ATTRIBUTE_ARRAY + "_Raw"] = (
-                            parse_api(
-                                data={},
-                                source=self.api.query(
-                                    f"endpoints/{eid}/docker/containers/{cid}/json",
-                                    "get",
-                                    {"all": True},
-                                ),
-                                vals=[
-                                    {
-                                        "name": "Health_Status",
-                                        "source": "State/Health/Status",
-                                        "default": "unknown",
-                                    },
-                                    {
-                                        "name": "Restart_Policy",
-                                        "source": "HostConfig/RestartPolicy/Name",
-                                        "default": "unknown",
-                                    },
-                                ],
-                                ensure_vals=[
-                                    {"name": "Health_Status", "default": "unknown"},
-                                    {"name": "Restart_Policy", "default": "unknown"},
-                                ],
-                            )
-                        )
-                        if self.features[CONF_FEATURE_HEALTH_CHECK]:
-                            self.data["containers"][cid][CUSTOM_ATTRIBUTE_ARRAY][
-                                "Health_Status"
-                            ] = self.data["containers"][cid][
-                                CUSTOM_ATTRIBUTE_ARRAY + "_Raw"
-                            ][
-                                "Health_Status"
-                            ]
-                        if self.features[CONF_FEATURE_RESTART_POLICY]:
-                            self.data["containers"][cid][CUSTOM_ATTRIBUTE_ARRAY][
-                                "Restart_Policy"
-                            ] = self.data["containers"][cid][
-                                CUSTOM_ATTRIBUTE_ARRAY + "_Raw"
-                            ][
-                                "Restart_Policy"
-                            ]
-                        del self.data["containers"][cid][CUSTOM_ATTRIBUTE_ARRAY + "_Raw"]
+
+                # Loop through a copy of keys since we might delete from the dict
+                for cid in list(self.raw_data["containers"][eid].keys()):
+                    container = self.raw_data["containers"][eid][cid]
+                    container["Environment"] = self.raw_data["endpoints"][eid]["Name"]
+                    container["Name"] = container["Names"][0][1:]
+                    container["ConfigEntryId"] = self.config_entry_id
+                    self.raw_data["containers"][eid][cid][CUSTOM_ATTRIBUTE_ARRAY] = {}
+
+                    # Format Published Ports
+                    ports_list = []
+                    if isinstance(container.get("Ports"), list):
+                        for port_info in container["Ports"]:
+                            port_str = ""
+                            if "PublicPort" in port_info and "PrivatePort" in port_info:
+                                ip = port_info.get("IP", "0.0.0.0")
+                                # Don't show the default 0.0.0.0 IP
+                                ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""
+                                port_str = f"{ip_prefix}{port_info['PublicPort']}->{port_info['PrivatePort']}/{port_info['Type']}"
+                            elif "PrivatePort" in port_info:
+                                # Case for internal ports without public mapping
+                                port_str = f"{port_info['PrivatePort']}/{port_info['Type']}"
+                            if port_str:
+                                ports_list.append(port_str)
+                    container["PublishedPorts"] = ", ".join(ports_list) if ports_list else "none"
+
+                    # Get detailed info for every container
+                    inspect_data_raw = self.api.query(
+                        f"endpoints/{eid}/docker/containers/{cid}/json", "get", {"all": True}
+                    )
+                    if not inspect_data_raw:
+                        del self.raw_data["containers"][eid][cid]
+                        continue
+
+                    # Extract Network Mode
+                    container["Network"] = inspect_data_raw.get("HostConfig", {}).get("NetworkMode", "unknown")
+
+                    # Extract IP Address
+                    ip_address = "unknown"
+                    networks = inspect_data_raw.get("NetworkSettings", {}).get("Networks", {})
+                    if networks:
+                        for network_details in networks.values():
+                            if network_details.get("IPAddress"):
+                                ip_address = network_details["IPAddress"]
+                                break
+                    container["IPAddress"] = ip_address
+
+                    # Format Mounts
+                    mounts_list = []
+                    if isinstance(inspect_data_raw.get("Mounts"), list):
+                        for mount_info in inspect_data_raw["Mounts"]:
+                            source = mount_info.get("Source") or mount_info.get("Name")
+                            destination = mount_info.get("Destination")
+                            if source and destination:
+                                mounts_list.append(f"{source}:{destination}")
+                    container["Mounts"] = ", ".join(mounts_list) if mounts_list else "none"
+
+                    # Extract Image ID
+                    container["ImageID"] = inspect_data_raw.get("Image", "unknown")
+
+                    # Extract Exit Code
+                    container["ExitCode"] = inspect_data_raw.get("State", {}).get("ExitCode")
+
+                    # Extract Privileged Mode
+                    container["Privileged"] = inspect_data_raw.get("HostConfig", {}).get("Privileged", False)
+
+                    # Extract additional data from inspect endpoint
+                    vals_to_parse = [
+                        {
+                            "name": "StartedAt",
+                            "source": "State/StartedAt",
+                            "default": None,
+                            "convert": "utc_from_iso_string",
+                        },
+                    ]
+                    if self.features.get(CONF_FEATURE_HEALTH_CHECK):
+                        vals_to_parse.append({"name": "Health_Status", "source": "State/Health/Status", "default": "unknown"})
+                    if self.features.get(CONF_FEATURE_RESTART_POLICY):
+                        vals_to_parse.append({"name": "Restart_Policy", "source": "HostConfig/RestartPolicy/Name", "default": "unknown"})
+
+                    parsed_details = parse_api(
+                        data={}, source=inspect_data_raw, vals=vals_to_parse
+                    )
+
+                    container["StartedAt"] = parsed_details.get("StartedAt")
+                    if self.features.get(CONF_FEATURE_HEALTH_CHECK):
+                        container[CUSTOM_ATTRIBUTE_ARRAY]["Health_Status"] = parsed_details.get("Health_Status", "unknown")
+                    if self.features.get(CONF_FEATURE_RESTART_POLICY):
+                        container[CUSTOM_ATTRIBUTE_ARRAY]["Restart_Policy"] = parsed_details.get("Restart_Policy", "unknown")
+
+        # ensure every environment has own set of containers
+        self.raw_data["containers"] = {
+            f"{eid}{cid}": value
+            for eid, t_dict in self.raw_data["containers"].items()
+            for cid, value in t_dict.items()
+        }

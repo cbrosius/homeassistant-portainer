@@ -1,10 +1,11 @@
 """API parser for JSON APIs."""
 
 from datetime import datetime
+import re
 from logging import getLogger
-
 from pytz import utc
-from voluptuous import Optional
+from typing import Any
+
 
 from homeassistant.components.diagnostics import async_redact_data
 
@@ -22,32 +23,51 @@ def utc_from_timestamp(timestamp: float) -> datetime:
 
 
 # ---------------------------
+#   utc_from_iso_string
+# ---------------------------
+def utc_from_iso_string(iso_string: str) -> datetime | None:
+    """Return a UTC time from an ISO 8601 string."""
+    if not iso_string or iso_string.startswith("0001-01-01"):
+        return None
+    try:
+        # Truncate to 6 decimal places for microseconds, fromisoformat can't handle more
+        iso_string = re.sub(r"(\.\d{6})\d*([Zz]|\+.*)?", r"\1\2", iso_string)
+        if iso_string.endswith("Z"):
+            iso_string = iso_string[:-1] + "+00:00"
+        return datetime.fromisoformat(iso_string)
+    except (ValueError, TypeError):
+        _LOGGER.warning("Could not parse ISO string: %s", iso_string)
+        return None
+
+
+# ---------------------------
+#   _get_nested_value
+# ---------------------------
+def _get_nested_value(data: Any, path: str, default: Any = None) -> Any:
+    """Safely get a nested value from a dictionary using a slash-separated path."""
+    parts = path.split('/')
+    current = data
+    for part in parts:
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return default
+    return current
+
+
+# ---------------------------
 #   from_entry
 # ---------------------------
 def from_entry(entry, param, default="") -> str:
     """Validate and return str value an API dict."""
     if "/" in param:
-        for tmp_param in param.split("/"):
-            if isinstance(entry, dict) and tmp_param in entry:
-                entry = entry[tmp_param]
-            else:
-                return default
-
-        ret = entry
-    elif param in entry:
-        ret = entry[param]
+        ret = _get_nested_value(entry, param, default)
     else:
-        return default
+        ret = entry.get(param, default)
 
-    if default != "":
-        if isinstance(ret, str):
-            ret = str(ret)
-        elif isinstance(ret, int):
-            ret = int(ret)
-        elif isinstance(ret, float):
-            ret = round(float(ret), 2)
-
-    return ret[:255] if isinstance(ret, str) and len(ret) > 255 else ret
+    if isinstance(ret, str) and len(ret) > 255:
+        return ret[:255]
+    return ret
 
 
 # ---------------------------
@@ -56,22 +76,13 @@ def from_entry(entry, param, default="") -> str:
 def from_entry_bool(entry, param, default=False, reverse=False) -> bool:
     """Validate and return a bool value from an API dict."""
     if "/" in param:
-        for tmp_param in param.split("/"):
-            if isinstance(entry, dict) and tmp_param in entry:
-                entry = entry[tmp_param]
-            else:
-                return default
-
-        ret = entry
-    elif param in entry:
-        ret = entry[param]
+        ret = _get_nested_value(entry, param, default)
     else:
-        return default
-
+        ret = entry.get(param, default)
     if isinstance(ret, str):
-        if ret in ("on", "On", "ON", "yes", "Yes", "YES", "up", "Up", "UP"):
+        if ret.lower() in ("on", "yes", "up"):
             ret = True
-        elif ret in ("off", "Off", "OFF", "no", "No", "NO", "down", "Down", "DOWN"):
+        elif ret.lower() in ("off", "no", "down"):
             ret = False
 
     if not isinstance(ret, bool):
@@ -84,35 +95,71 @@ def from_entry_bool(entry, param, default=False, reverse=False) -> bool:
 
 
 # ---------------------------
+#   _process_value_definition
+# ---------------------------
+def _process_value_definition(target_dict: dict, source_entry: dict, val_def: dict) -> None:
+    """Process a single value definition and fill it into the target dictionary."""
+    _name = val_def["name"]
+    _type = val_def.get("type", "str")
+    _source_path = val_def.get("source", _name)
+    _convert = val_def.get("convert")
+
+    if _type == "str":
+        _default = val_def.get("default", "")
+        if "default_val" in val_def and val_def["default_val"] in val_def:
+            _default = val_def[val_def["default_val"]]
+        target_dict[_name] = from_entry(source_entry, _source_path, default=_default)
+    elif _type == "bool":
+        _default = val_def.get("default", False)
+        _reverse = val_def.get("reverse", False)
+        target_dict[_name] = from_entry_bool(source_entry, _source_path, default=_default, reverse=_reverse)
+    else:
+        # Handle other types or raise error if unsupported
+        _LOGGER.warning("Unsupported value type: %s for %s", _type, _name)
+        return
+
+    if _convert == "utc_from_timestamp":
+        val = target_dict[_name]
+        if isinstance(val, (int, float)) and val > 0:
+            if val > 100000000000:  # Heuristic for milliseconds vs seconds
+                val /= 1000
+            target_dict[_name] = utc_from_timestamp(val)
+    elif _convert == "utc_from_iso_string":
+        val = target_dict[_name]
+        if isinstance(val, str):
+            target_dict[_name] = utc_from_iso_string(val)
+
+
+
+
+# ---------------------------
 #   parse_api
 # ---------------------------
 def parse_api(
-    data=None,
-    source=None,
-    key=None,
-    key_secondary=None,
-    key_search=None,
-    vals=None,
-    val_proc=None,
-    ensure_vals=None,
-    only=None,
-    skip=None,
+    data: dict | None = None,
+    source: Any = None,
+    key: str | None = None,
+    vals: list | None = None,
+    val_proc: list | None = None,
+    ensure_vals: list | None = None,
+    only: list | None = None,
+    skip: list | None = None,
 ) -> dict:
     """Get data from API."""
-    debug = _LOGGER.getEffectiveLevel() == 10
-    if type(source) == dict:
-        tmp = source
-        source = [tmp]
+    if data is None:
+        data = {}
+
+    if isinstance(source, dict):
+        source = [source]
 
     if not source:
-        if not key and not key_search:
-            data = fill_defaults(data, vals)
+        # If no source, and no key for list processing, fill defaults if vals are provided
+        if not key and vals:
+            for val_def in vals:
+                if val_def.get("name") not in data:
+                    _process_value_definition(data, {}, val_def) # Pass empty dict for source_entry
         return data
 
-    if debug:
-        _LOGGER.debug("Processing source %s", async_redact_data(source, TO_REDACT))
-
-    keymap = generate_keymap(data, key_search)
     for entry in source:
         if only and not matches_only(entry, only):
             continue
@@ -121,68 +168,33 @@ def parse_api(
             continue
 
         uid = None
-        if key or key_search:
-            uid = get_uid(entry, key, key_secondary, key_search, keymap)
-            if not uid:
+        if key:
+            uid = _get_nested_value(entry, key)
+            if uid is None: # UID must not be None
                 continue
 
             if uid not in data:
                 data[uid] = {}
 
-        if debug:
-            _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
+            target_data = data[uid]
+        else:
+            target_data = data # If no UID, operate directly on the passed data dict
+
+        _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
 
         if vals:
-            data = fill_vals(data, entry, uid, vals)
+            for val_def in vals:
+                _process_value_definition(target_data, entry, val_def)
 
         if ensure_vals:
-            data = fill_ensure_vals(data, uid, ensure_vals)
+            for val_def in ensure_vals:
+                if val_def.get("name") not in target_data:
+                    target_data[val_def["name"]] = val_def.get("default", "")
 
         if val_proc:
-            data = fill_vals_proc(data, uid, val_proc)
+            fill_vals_proc(data, uid, val_proc)
 
     return data
-
-
-# ---------------------------
-#   get_uid
-# ---------------------------
-def get_uid(entry, key, key_secondary, key_search, keymap) -> Optional(str):
-    """Get UID for data list."""
-    uid = None
-    if not key_search:
-        key_primary_found = key in entry
-        if key_primary_found and key not in entry and not entry[key]:
-            return None
-
-        if key_primary_found:
-            uid = entry[key]
-        elif key_secondary:
-            if key_secondary not in entry:
-                return None
-
-            if not entry[key_secondary]:
-                return None
-
-            uid = entry[key_secondary]
-    elif keymap and key_search in entry and entry[key_search] in keymap:
-        uid = keymap[entry[key_search]]
-    else:
-        return None
-
-    return uid or None
-
-
-# ---------------------------
-#   generate_keymap
-# ---------------------------
-def generate_keymap(data, key_search) -> Optional(dict):
-    """Generate keymap."""
-    return (
-        {data[uid][key_search]: uid for uid in data if key_search in data[uid]}
-        if key_search
-        else None
-    )
 
 
 # ---------------------------
@@ -217,103 +229,6 @@ def can_skip(entry, skip) -> bool:
             break
 
     return ret
-
-
-# ---------------------------
-#   fill_defaults
-# ---------------------------
-def fill_defaults(data, vals) -> dict:
-    """Fill defaults if source is not present."""
-    for val in vals:
-        _name = val["name"]
-        _type = val["type"] if "type" in val else "str"
-        _source = val["source"] if "source" in val else _name
-
-        if _type == "str":
-            _default = val["default"] if "default" in val else ""
-            if "default_val" in val and val["default_val"] in val:
-                _default = val[val["default_val"]]
-
-            if _name not in data:
-                data[_name] = from_entry([], _source, default=_default)
-
-        elif _type == "bool":
-            _default = val["default"] if "default" in val else False
-            _reverse = val["reverse"] if "reverse" in val else False
-            if _name not in data:
-                data[_name] = from_entry_bool(
-                    [], _source, default=_default, reverse=_reverse
-                )
-
-    return data
-
-
-# ---------------------------
-#   fill_vals
-# ---------------------------
-def fill_vals(data, entry, uid, vals) -> dict:
-    """Fill all data."""
-    for val in vals:
-        _name = val["name"]
-        _type = val["type"] if "type" in val else "str"
-        _source = val["source"] if "source" in val else _name
-        _convert = val["convert"] if "convert" in val else None
-
-        if _type == "str":
-            _default = val["default"] if "default" in val else ""
-            if "default_val" in val and val["default_val"] in val:
-                _default = val[val["default_val"]]
-
-            if uid:
-                data[uid][_name] = from_entry(entry, _source, default=_default)
-            else:
-                data[_name] = from_entry(entry, _source, default=_default)
-
-        elif _type == "bool":
-            _default = val["default"] if "default" in val else False
-            _reverse = val["reverse"] if "reverse" in val else False
-
-            if uid:
-                data[uid][_name] = from_entry_bool(
-                    entry, _source, default=_default, reverse=_reverse
-                )
-            else:
-                data[_name] = from_entry_bool(
-                    entry, _source, default=_default, reverse=_reverse
-                )
-
-        if _convert == "utc_from_timestamp":
-            if uid:
-                if isinstance(data[uid][_name], int) and data[uid][_name] > 0:
-                    if data[uid][_name] > 100000000000:
-                        data[uid][_name] = data[uid][_name] / 1000
-
-                    data[uid][_name] = utc_from_timestamp(data[uid][_name])
-            elif isinstance(data[_name], int) and data[_name] > 0:
-                if data[_name] > 100000000000:
-                    data[_name] = data[_name] / 1000
-
-                data[_name] = utc_from_timestamp(data[_name])
-
-    return data
-
-
-# ---------------------------
-#   fill_ensure_vals
-# ---------------------------
-def fill_ensure_vals(data, uid, ensure_vals) -> dict:
-    """Add required keys which are not available in data."""
-    for val in ensure_vals:
-        if uid:
-            if val["name"] not in data[uid]:
-                _default = val["default"] if "default" in val else ""
-                data[uid][val["name"]] = _default
-
-        elif val["name"] not in data:
-            _default = val["default"] if "default" in val else ""
-            data[val["name"]] = _default
-
-    return data
 
 
 # ---------------------------

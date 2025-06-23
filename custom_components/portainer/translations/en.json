@@ -30,5 +30,22 @@
                 }
             }   
         }
+    },
+    "services": {
+        "perform_container_action": {
+            "name": "Perform Container Action",
+            "description": "Performs a specified action (start, stop, restart, kill) on one or more containers.",
+            "fields": {
+                "action": {
+                    "name": "Action",
+                    "description": "The action to perform on the containers.",
+                    "selector": { "select": { "options": ["start", "stop", "restart", "kill"] } }
+                },
+                "container_devices": {
+                    "name": "Container Devices",
+                    "description": "A list of Docker container devices to perform the action on."
+                }
+            }
+        }
     }
 }

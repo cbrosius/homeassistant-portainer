@@ -5,6 +5,7 @@ from typing import Final
 
 PLATFORMS = [
     Platform.SENSOR,
+    Platform.BUTTON,
 ]
 
 DOMAIN = "portainer"
@@ -13,11 +14,18 @@ ATTRIBUTION = "Data provided by Portainer integration"
 
 SCAN_INTERVAL = 30
 
-DEFAULT_HOST = "10.0.0.1"
+DEFAULT_HOST = "192.168.60.199:9443"
 
 DEFAULT_DEVICE_NAME = "Portainer"
-DEFAULT_SSL = False
-DEFAULT_SSL_VERIFY = True
+DEFAULT_SSL = True
+DEFAULT_SSL_VERIFY = False
+
+# attributes used in the entity unique_id
+DEVICE_ATTRIBUTES_CONTAINERS_UNIQUE = [
+    "Environment",
+    "Name",
+    "ConfigEntryId",
+]
 
 TO_REDACT = {
     "password",

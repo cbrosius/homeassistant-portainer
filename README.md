@@ -1,5 +1,5 @@
 # Portainer integration for Home Assistant
-(based on the work of @tomaae)
+(based on the work of [@tomaae](https://github.com/tomaae/homeassistant-portainer))
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/cbrosius/homeassistant-portainer?style=plastic)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=plastic)](https://github.com/hacs/integration)

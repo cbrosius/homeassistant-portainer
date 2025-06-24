@@ -171,13 +171,6 @@ List of supported custom attibutes:
 
 ![Configuration](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/options.png)
 
-# Development
-## Translation
-To help out with the translation you need an account on Lokalise, the easiest way to get one is to [click here](https://lokalise.com/login/) then select "Log in with GitHub".
-After you have created your account [click here to join Portainer project on Lokalise](https://app.lokalise.com/public/892665226456f113e0a814.16864793/).
-
-If you want to add translations for a language that is not listed please [open a Feature request](https://github.com/cbrosius/homeassistant-portainer/issues/new?labels=enhancement&title=%5BLokalise%5D%20Add%20new%20translations%20language).
-
 ## Enabling debug
 To enable debug for Portainer integration, add following to your configuration.yaml:
 ```

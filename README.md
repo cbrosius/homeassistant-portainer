@@ -2,7 +2,7 @@
 (based on the work of [@tomaae](https://github.com/tomaae/homeassistant-portainer))
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/cbrosius/homeassistant-portainer?style=plastic)
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=plastic)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=plastic)](https://github.com/hacs/integration)
 ![Project Stage](https://img.shields.io/badge/project%20stage-development-yellow.svg?style=plastic)
 ![GitHub all releases](https://img.shields.io/github/downloads/cbrosius/homeassistant-portainer/total?style=plastic)
 
@@ -129,9 +129,20 @@ As an alternative, you can use the UI to perform this action.
 
 
 # Install integration
-This integration is distributed using [HACS](https://hacs.xyz/).
+This integration is available via the Home Assistant Community Store ([HACS](https://hacs.xyz/)).
 
-You can find it under "Integrations", named "Portainer"
+Since this integration is not in the default HACS repository, you must add it as a custom repository.
+
+1.  **Navigate to HACS**: In Home Assistant, go to `HACS` > `Integrations`.
+2.  **Add Custom Repository**: Click the three-dots menu in the top-right corner and select `Custom repositories`.
+3.  **Add the Repository URL**:
+    *   In the `Repository` field, paste this GitHub repository's URL: `https://github.com/cbrosius/homeassistant-portainer`
+    *   In the `Category` dropdown, select `Integration`.
+    *   Click `Add`.
+4.  **Install the Integration**: The "Portainer" integration will now appear in your HACS integrations list. Click `Install` and proceed with the installation.
+5.  **Restart Home Assistant**: After the installation is complete, you must restart Home Assistant for the integration to be loaded.
+
+After restarting, you can proceed with getting your access token and setting up the integration.
 
 ## Get portainer access token
 1. Login into your portainer instance

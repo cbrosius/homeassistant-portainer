@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Extract Tag Without `v`
         run: |
@@ -20,17 +20,17 @@ jobs:
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
       - name: Update version
         run: |
-          python3 /home/runner/work/homeassistant-portainer/homeassistant-portainer/.github/update_version.py --version $TAG_NAME
+          python3 .github/update_version.py --version $TAG_NAME
       - name: Zip portainer dir
         run: |
-          cd /home/runner/work/homeassistant-portainer/homeassistant-portainer/custom_components/portainer
+          cd custom_components/portainer
           zip portainer.zip -r ./
       - name: Upload zip to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
 
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: /home/runner/work/homeassistant-portainer/homeassistant-portainer/custom_components/portainer/portainer.zip
+          file: custom_components/portainer/portainer.zip
           asset_name: portainer.zip
           tag: ${{ github.ref }}
           overwrite: true
@@ -40,10 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
 
@@ -53,4 +53,4 @@ jobs:
 
       - name: Update release notes
         run: |
-          python3 /home/runner/work/homeassistant-portainer/homeassistant-portainer/.github/generate_releasenotes.py --token ${{ secrets.GITHUB_TOKEN }} --release yes --tag ${{ github.ref }}
+          python3 .github/generate_releasenotes.py --token ${{ secrets.GITHUB_TOKEN }} --release yes --tag ${{ github.ref }}

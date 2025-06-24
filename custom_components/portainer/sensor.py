@@ -12,9 +12,7 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import (
-    device_registry as dr, entity_platform as ep
-)
+from homeassistant.helpers import device_registry as dr, entity_platform as ep
 from homeassistant.helpers.typing import StateType
 
 from custom_components.portainer.const import DOMAIN
@@ -27,7 +25,9 @@ from .const import (
 from .coordinator import PortainerCoordinator
 from .entity import PortainerEntity, async_create_sensors
 from .sensor_types import (
-    SENSOR_SERVICES, SENSOR_TYPES, SENSOR_TYPES_FEATURES
+    SENSOR_TYPES,
+    SENSOR_TYPES_FEATURES,
+    PortainerSensorEntityDescription,
 )
 
 
@@ -73,14 +73,11 @@ def _get_sensor_descriptions(
         )
     if coordinator.features.get(CONF_FEATURE_RESTART_POLICY):
         descriptions.extend(
-            [
-                d
-                for d in SENSOR_TYPES_FEATURES
-                if d.key == "container_restart_policy"
-            ]
+            [d for d in SENSOR_TYPES_FEATURES if d.key == "container_restart_policy"]
         )
 
     return descriptions
+
 
 # ---------------------------
 #   async_setup_entry
@@ -250,7 +247,6 @@ class ContainerSensor(PortainerSensor):
 
         container_state = self._data.get("State")
         return container_state in self.entity_description.supported_states
-
 
     @property
     def native_value(self) -> StateType | date | datetime | Decimal:

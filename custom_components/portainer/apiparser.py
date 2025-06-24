@@ -45,7 +45,7 @@ def utc_from_iso_string(iso_string: str) -> datetime | None:
 # ---------------------------
 def _get_nested_value(data: Any, path: str, default: Any = None) -> Any:
     """Safely get a nested value from a dictionary using a slash-separated path."""
-    parts = path.split('/')
+    parts = path.split("/")
     current = data
     for part in parts:
         if isinstance(current, dict) and part in current:
@@ -97,7 +97,9 @@ def from_entry_bool(entry, param, default=False, reverse=False) -> bool:
 # ---------------------------
 #   _process_value_definition
 # ---------------------------
-def _process_value_definition(target_dict: dict, source_entry: dict, val_def: dict) -> None:
+def _process_value_definition(
+    target_dict: dict, source_entry: dict, val_def: dict
+) -> None:
     """Process a single value definition and fill it into the target dictionary."""
     _name = val_def["name"]
     _type = val_def.get("type", "str")
@@ -112,7 +114,9 @@ def _process_value_definition(target_dict: dict, source_entry: dict, val_def: di
     elif _type == "bool":
         _default = val_def.get("default", False)
         _reverse = val_def.get("reverse", False)
-        target_dict[_name] = from_entry_bool(source_entry, _source_path, default=_default, reverse=_reverse)
+        target_dict[_name] = from_entry_bool(
+            source_entry, _source_path, default=_default, reverse=_reverse
+        )
     else:
         # Handle other types or raise error if unsupported
         _LOGGER.warning("Unsupported value type: %s for %s", _type, _name)
@@ -128,8 +132,6 @@ def _process_value_definition(target_dict: dict, source_entry: dict, val_def: di
         val = target_dict[_name]
         if isinstance(val, str):
             target_dict[_name] = utc_from_iso_string(val)
-
-
 
 
 # ---------------------------
@@ -157,7 +159,9 @@ def parse_api(
         if not key and vals:
             for val_def in vals:
                 if val_def.get("name") not in data:
-                    _process_value_definition(data, {}, val_def) # Pass empty dict for source_entry
+                    _process_value_definition(
+                        data, {}, val_def
+                    )  # Pass empty dict for source_entry
         return data
 
     for entry in source:
@@ -170,7 +174,7 @@ def parse_api(
         uid = None
         if key:
             uid = _get_nested_value(entry, key)
-            if uid is None: # UID must not be None
+            if uid is None:  # UID must not be None
                 continue
 
             if uid not in data:
@@ -178,7 +182,7 @@ def parse_api(
 
             target_data = data[uid]
         else:
-            target_data = data # If no UID, operate directly on the passed data dict
+            target_data = data  # If no UID, operate directly on the passed data dict
 
         _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
 

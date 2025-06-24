@@ -193,7 +193,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"name": "Image", "default": "unknown"},
                         {"name": "State", "default": "unknown"},
                         {"name": "Ports", "default": "unknown"},
-                        {"name": "Created", "default": 0, "convert": "utc_from_timestamp"},
+                        {
+                            "name": "Created",
+                            "default": 0,
+                            "convert": "utc_from_timestamp",
+                        },
                         {
                             "name": "Compose_Stack",
                             "source": "Labels/com.docker.compose.project",
@@ -237,25 +241,35 @@ class PortainerCoordinator(DataUpdateCoordinator):
                                 port_str = f"{ip_prefix}{port_info['PublicPort']}->{port_info['PrivatePort']}/{port_info['Type']}"
                             elif "PrivatePort" in port_info:
                                 # Case for internal ports without public mapping
-                                port_str = f"{port_info['PrivatePort']}/{port_info['Type']}"
+                                port_str = (
+                                    f"{port_info['PrivatePort']}/{port_info['Type']}"
+                                )
                             if port_str:
                                 ports_list.append(port_str)
-                    container["PublishedPorts"] = ", ".join(ports_list) if ports_list else "none"
+                    container["PublishedPorts"] = (
+                        ", ".join(ports_list) if ports_list else "none"
+                    )
 
                     # Get detailed info for every container
                     inspect_data_raw = self.api.query(
-                        f"endpoints/{eid}/docker/containers/{cid}/json", "get", {"all": True}
+                        f"endpoints/{eid}/docker/containers/{cid}/json",
+                        "get",
+                        {"all": True},
                     )
                     if not inspect_data_raw:
                         del self.raw_data["containers"][eid][cid]
                         continue
 
                     # Extract Network Mode
-                    container["Network"] = inspect_data_raw.get("HostConfig", {}).get("NetworkMode", "unknown")
+                    container["Network"] = inspect_data_raw.get("HostConfig", {}).get(
+                        "NetworkMode", "unknown"
+                    )
 
                     # Extract IP Address
                     ip_address = "unknown"
-                    networks = inspect_data_raw.get("NetworkSettings", {}).get("Networks", {})
+                    networks = inspect_data_raw.get("NetworkSettings", {}).get(
+                        "Networks", {}
+                    )
                     if networks:
                         for network_details in networks.values():
                             if network_details.get("IPAddress"):
@@ -271,16 +285,22 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             destination = mount_info.get("Destination")
                             if source and destination:
                                 mounts_list.append(f"{source}:{destination}")
-                    container["Mounts"] = ", ".join(mounts_list) if mounts_list else "none"
+                    container["Mounts"] = (
+                        ", ".join(mounts_list) if mounts_list else "none"
+                    )
 
                     # Extract Image ID
                     container["ImageID"] = inspect_data_raw.get("Image", "unknown")
 
                     # Extract Exit Code
-                    container["ExitCode"] = inspect_data_raw.get("State", {}).get("ExitCode")
+                    container["ExitCode"] = inspect_data_raw.get("State", {}).get(
+                        "ExitCode"
+                    )
 
                     # Extract Privileged Mode
-                    container["Privileged"] = inspect_data_raw.get("HostConfig", {}).get("Privileged", False)
+                    container["Privileged"] = inspect_data_raw.get(
+                        "HostConfig", {}
+                    ).get("Privileged", False)
 
                     # Extract additional data from inspect endpoint
                     vals_to_parse = [
@@ -292,9 +312,21 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         },
                     ]
                     if self.features.get(CONF_FEATURE_HEALTH_CHECK):
-                        vals_to_parse.append({"name": "Health_Status", "source": "State/Health/Status", "default": "unknown"})
+                        vals_to_parse.append(
+                            {
+                                "name": "Health_Status",
+                                "source": "State/Health/Status",
+                                "default": "unknown",
+                            }
+                        )
                     if self.features.get(CONF_FEATURE_RESTART_POLICY):
-                        vals_to_parse.append({"name": "Restart_Policy", "source": "HostConfig/RestartPolicy/Name", "default": "unknown"})
+                        vals_to_parse.append(
+                            {
+                                "name": "Restart_Policy",
+                                "source": "HostConfig/RestartPolicy/Name",
+                                "default": "unknown",
+                            }
+                        )
 
                     parsed_details = parse_api(
                         data={}, source=inspect_data_raw, vals=vals_to_parse
@@ -302,9 +334,13 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     container["StartedAt"] = parsed_details.get("StartedAt")
                     if self.features.get(CONF_FEATURE_HEALTH_CHECK):
-                        container[CUSTOM_ATTRIBUTE_ARRAY]["Health_Status"] = parsed_details.get("Health_Status", "unknown")
+                        container[CUSTOM_ATTRIBUTE_ARRAY]["Health_Status"] = (
+                            parsed_details.get("Health_Status", "unknown")
+                        )
                     if self.features.get(CONF_FEATURE_RESTART_POLICY):
-                        container[CUSTOM_ATTRIBUTE_ARRAY]["Restart_Policy"] = parsed_details.get("Restart_Policy", "unknown")
+                        container[CUSTOM_ATTRIBUTE_ARRAY]["Restart_Policy"] = (
+                            parsed_details.get("Restart_Policy", "unknown")
+                        )
 
         # ensure every environment has own set of containers
         self.raw_data["containers"] = {

@@ -44,7 +44,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
 
     allowed_actions = ["start", "stop", "restart", "kill"]
     if action not in allowed_actions:
-        raise HomeAssistantError(f"Invalid action: {action}. Must be one of {allowed_actions}")
+        raise HomeAssistantError(
+            f"Invalid action: {action}. Must be one of {allowed_actions}"
+        )
 
     device_reg = dr.async_get(hass)
 
@@ -52,8 +54,15 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
     devices_by_config_entry: dict[str, list[str]] = {}
     for device_id in container_device_ids:
         device_entry = device_reg.async_get(device_id)
-        if not device_entry or not device_entry.identifiers or not device_entry.config_entries:
-            _LOGGER.warning("Device '%s' not found or not associated with a config entry. Skipping.", device_id)
+        if (
+            not device_entry
+            or not device_entry.identifiers
+            or not device_entry.config_entries
+        ):
+            _LOGGER.warning(
+                "Device '%s' not found or not associated with a config entry. Skipping.",
+                device_id,
+            )
             continue
 
         config_entry_id = next(iter(device_entry.config_entries))
@@ -86,17 +95,36 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         for container_id in docker_container_ids:
             endpoint_id = container_lookup.get(container_id)
             if not endpoint_id:
-                _LOGGER.warning("Container ID '%s' not found in Portainer data for instance '%s'. Skipping.", container_id, coordinator.name)
+                _LOGGER.warning(
+                    "Container ID '%s' not found in Portainer data for instance '%s'. Skipping.",
+                    container_id,
+                    coordinator.name,
+                )
                 failed_actions.append(container_id)
                 continue
 
-            service_path = f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+            service_path = (
+                f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+            )
             try:
-                await hass.async_add_executor_job(coordinator.api.query, service_path, "post", {})
-                _LOGGER.info("Successfully performed '%s' on container '%s' on instance '%s'", action, container_id, coordinator.name)
+                await hass.async_add_executor_job(
+                    coordinator.api.query, service_path, "post", {}
+                )
+                _LOGGER.info(
+                    "Successfully performed '%s' on container '%s' on instance '%s'",
+                    action,
+                    container_id,
+                    coordinator.name,
+                )
                 successful_actions.append(container_id)
             except Exception as e:
-                _LOGGER.error("Failed to perform '%s' on container '%s' on instance '%s': %s", action, container_id, coordinator.name, e)
+                _LOGGER.error(
+                    "Failed to perform '%s' on container '%s' on instance '%s': %s",
+                    action,
+                    container_id,
+                    coordinator.name,
+                    e,
+                )
                 failed_actions.append(container_id)
 
         await coordinator.async_request_refresh()
@@ -133,8 +161,15 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
     devices_by_config_entry: dict[str, list[str]] = {}
     for device_id in stack_device_ids:
         device_entry = device_reg.async_get(device_id)
-        if not device_entry or not device_entry.identifiers or not device_entry.config_entries:
-            _LOGGER.warning("Device '%s' not found or not associated with a config entry. Skipping.", device_id)
+        if (
+            not device_entry
+            or not device_entry.identifiers
+            or not device_entry.config_entries
+        ):
+            _LOGGER.warning(
+                "Device '%s' not found or not associated with a config entry. Skipping.",
+                device_id,
+            )
             continue
 
         config_entry_id = next(iter(device_entry.config_entries))
@@ -147,7 +182,11 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             if stack_id_str.isdigit():
                 devices_by_config_entry[config_entry_id].append(stack_id_str)
             else:
-                _LOGGER.warning("Found invalid stack identifier '%s' for device '%s'. Skipping.", identifier, device_id)
+                _LOGGER.warning(
+                    "Found invalid stack identifier '%s' for device '%s'. Skipping.",
+                    identifier,
+                    device_id,
+                )
 
     successful_actions = []
     failed_actions = []
@@ -162,7 +201,11 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
         for stack_id in stack_ids:
             stack_data = coordinator.data.get("stacks", {}).get(int(stack_id))
             if not stack_data:
-                _LOGGER.warning("Stack ID '%s' not found in Portainer data for instance '%s'. Skipping.", stack_id, coordinator.name)
+                _LOGGER.warning(
+                    "Stack ID '%s' not found in Portainer data for instance '%s'. Skipping.",
+                    stack_id,
+                    coordinator.name,
+                )
                 failed_actions.append(stack_id)
                 continue
 
@@ -173,17 +216,33 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
 
             try:
-                await hass.async_add_executor_job(coordinator.api.query, service_path, method, {})
-                _LOGGER.info("Successfully performed '%s' on stack '%s' on instance '%s'", action, stack_id, coordinator.name)
+                await hass.async_add_executor_job(
+                    coordinator.api.query, service_path, method, {}
+                )
+                _LOGGER.info(
+                    "Successfully performed '%s' on stack '%s' on instance '%s'",
+                    action,
+                    stack_id,
+                    coordinator.name,
+                )
                 successful_actions.append(stack_id)
             except Exception as e:
-                _LOGGER.error("Failed to perform '%s' on stack '%s' on instance '%s': %s", action, stack_id, coordinator.name, e)
+                _LOGGER.error(
+                    "Failed to perform '%s' on stack '%s' on instance '%s': %s",
+                    action,
+                    stack_id,
+                    coordinator.name,
+                    e,
+                )
                 failed_actions.append(stack_id)
 
         await coordinator.async_request_refresh()
 
     if failed_actions:
-        raise HomeAssistantError(f"Action '{action}' failed for stacks: {', '.join(failed_actions)}. Successful for: {', '.join(successful_actions) if successful_actions else 'none'}.")
+        raise HomeAssistantError(
+            f"Action '{action}' failed for stacks: {', '.join(failed_actions)}. Successful for: {', '.join(successful_actions) if successful_actions else 'none'}."
+        )
+
 
 # ---------------------------
 #   async_setup_entry
@@ -208,9 +267,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         _handle_perform_container_action,
         schema=vol.Schema(
             {
-                vol.Required(ATTR_ACTION): vol.In([
-                    "start", "stop", "restart", "kill"
-                ]),
+                vol.Required(ATTR_ACTION): vol.In(["start", "stop", "restart", "kill"]),
                 vol.Required(ATTR_CONTAINER_DEVICES): vol.All([str], vol.Length(min=1)),
             }
         ),
@@ -223,9 +280,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         _handle_perform_stack_action,
         schema=vol.Schema(
             {
-                vol.Required(ATTR_ACTION): vol.In([
-                    "start", "stop"
-                ]),
+                vol.Required(ATTR_ACTION): vol.In(["start", "stop"]),
                 vol.Required(ATTR_STACK_DEVICES): vol.All([str], vol.Length(min=1)),
             }
         ),

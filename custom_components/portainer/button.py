@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import logging
 
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntity, ButtonEntityDescription
+from homeassistant.components.button import (
+    ButtonDeviceClass,
+    ButtonEntity,
+    ButtonEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -22,6 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass(kw_only=True)
 class PortainerButtonEntityDescription(ButtonEntityDescription):
     """Class describing portainer button entities."""
+
     ha_group: str | None = None
     ha_connection: str | None = None
     ha_connection_value: str | None = None
@@ -96,7 +101,7 @@ BUTTON_TYPES: tuple[PortainerButtonEntityDescription, ...] = (
         data_reference="Id",
         func="StackActionButton",
         action="start",
-        supported_states=["inactive"], # Stack status: 1=active, 2=inactive
+        supported_states=["inactive"],  # Stack status: 1=active, 2=inactive
     ),
     PortainerButtonEntityDescription(
         key="stop_stack",
@@ -108,7 +113,7 @@ BUTTON_TYPES: tuple[PortainerButtonEntityDescription, ...] = (
         data_reference="Id",
         func="StackActionButton",
         action="stop",
-        supported_states=["active"], # Stack status: 1=active, 2=inactive
+        supported_states=["active"],  # Stack status: 1=active, 2=inactive
     ),
 )
 
@@ -200,7 +205,9 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
             )
             return
 
-        service_path = f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+        service_path = (
+            f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+        )
         api_params = {}
 
         await self.hass.async_add_executor_job(
@@ -299,7 +306,9 @@ class StackActionButton(PortainerEntity, ButtonEntity):
             )
             _LOGGER.info("Successfully performed '%s' on stack '%s'", action, stack_id)
         except Exception as e:
-            _LOGGER.error("Failed to perform '%s' on stack '%s': %s", action, stack_id, e)
+            _LOGGER.error(
+                "Failed to perform '%s' on stack '%s': %s", action, stack_id, e
+            )
 
         await self.coordinator.async_request_refresh()
 
@@ -311,7 +320,7 @@ class StackActionButton(PortainerEntity, ButtonEntity):
         name = self._data.get("Name", "Unknown")
 
         return {
-            "identifiers": {(DOMAIN, f"stack_{stack_id}")}, # Matches StackSensor
+            "identifiers": {(DOMAIN, f"stack_{stack_id}")},  # Matches StackSensor
             "name": name,
             "manufacturer": "Portainer",
             "model": "Stack",

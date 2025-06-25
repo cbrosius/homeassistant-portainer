@@ -38,8 +38,7 @@
             "fields": {
                 "action": {
                     "name": "Action",
-                    "description": "The action to perform on the containers.",
-                    "selector": { "select": { "options": ["start", "stop", "restart", "kill"] } }
+                    "description": "The action to perform on the containers."
                 },
                 "container_devices": {
                     "name": "Container Devices",
@@ -53,8 +52,7 @@
             "fields": {
                 "action": {
                     "name": "Action",
-                    "description": "The action to perform on the stacks.",
-                    "selector": { "select": { "options": ["start", "stop"] } }
+                    "description": "The action to perform on the stacks."
                 },
                 "stack_devices": {
                     "name": "Stack Devices",

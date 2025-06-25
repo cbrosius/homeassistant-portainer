@@ -1,3 +1,4 @@
 # Ignore VS Code settings
 .vscode/settings.json
 .sonarlint/connectedMode.json
+sonar-project.properties

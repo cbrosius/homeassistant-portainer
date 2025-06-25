@@ -1,6 +1,11 @@
 {
     "domain": "portainer",
     "name": "Portainer",
+    "codeowners": [
+        "@tomaae",
+        "@supleed2",
+        "@cbrosius"
+    ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/cbrosius/homeassistant-portainer",
@@ -8,10 +13,5 @@
     "issue_tracker": "https://github.com/cbrosius/homeassistant-portainer/issues",
     "loggers": ["portainer"],
     "requirements": [],
-    "version": "1.0.4",
-    "codeowners": [
-        "@tomaae",
-        "@supleed2",
-        "@cbrosius"
-    ]
+    "version": "1.0.4"
 }

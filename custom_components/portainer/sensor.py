@@ -100,7 +100,7 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
 
     platform = ep.async_get_current_platform()
-    services = platform.platform.SENSOR_SERVICES
+    services = getattr(platform.platform, "SENSOR_SERVICES", [])
     descriptions = _get_sensor_descriptions(coordinator)
 
     for service in services:

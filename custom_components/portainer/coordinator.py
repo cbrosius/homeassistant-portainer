@@ -235,9 +235,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         for port_info in container["Ports"]:
                             port_str = ""
                             if "PublicPort" in port_info and "PrivatePort" in port_info:
-                                ip = port_info.get("IP", "0.0.0.0")
+                                ip = port_info.get("IP", "0.0.0.0")  # nosec
                                 # Don't show the default 0.0.0.0 IP
-                                ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""
+                                ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""  # nosec
                                 port_str = f"{ip_prefix}{port_info['PublicPort']}->{port_info['PrivatePort']}/{port_info['Type']}"
                             elif "PrivatePort" in port_info:
                                 # Case for internal ports without public mapping

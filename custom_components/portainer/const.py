@@ -20,13 +20,6 @@ DEFAULT_DEVICE_NAME = "Portainer"
 DEFAULT_SSL = True
 DEFAULT_SSL_VERIFY = False
 
-# attributes used in the entity unique_id
-DEVICE_ATTRIBUTES_CONTAINERS_UNIQUE = [
-    "Environment",
-    "Name",
-    "ConfigEntryId",
-]
-
 TO_REDACT = {
     "password",
 }

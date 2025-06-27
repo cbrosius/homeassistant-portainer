@@ -15,8 +15,6 @@ from homeassistant.util import slugify
 from .const import (
     ATTRIBUTION,
     DOMAIN,
-    CUSTOM_ATTRIBUTE_ARRAY,
-    DEVICE_ATTRIBUTES_CONTAINERS_UNIQUE,
 )
 from .coordinator import PortainerCoordinator
 from .helper import format_attribute, format_camel_case
@@ -74,16 +72,10 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         self._uid = uid
         self._data = coordinator.data[self.description.data_path]
         if self._uid:
-            self._data = coordinator.data[self.description.data_path][self._uid]
-            # build _attr_unique_id (with _uid)
-            slug = ""
-            for key in DEVICE_ATTRIBUTES_CONTAINERS_UNIQUE:
-                if key in self._data:
-                    slug = slug + " " + self._data[key]
-            slug = format_camel_case(slug).lower()
-            self._attr_unique_id = (
-                f"{self._inst.lower()}-{self.description.key}-{slugify(slug)}"
-            )
+            # For entities with a specific UID (containers, stacks, endpoints)
+            self._data = coordinator.data[self.description.data_path][self._uid] # This is the actual object data
+            # Use the object's actual ID from Portainer for robustness
+            self._attr_unique_id = f"{self._inst.lower()}-{self.description.key}-{self._data['Id']}"
         else:
             # build _attr_unique_id (no _uid)
             self._attr_unique_id = f"{self._inst.lower()}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"

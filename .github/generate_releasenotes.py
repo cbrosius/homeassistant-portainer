@@ -104,7 +104,7 @@ def get_integration_commits(github, skip=True):
             if "\n" in msg:
                 msg = msg.split("\n")[0]
             if commit.author:
-                ath = commit.author
+                ath = commit.author.login
             else:
                 ath = "Unknown"
             changes += CHANGE.format(line=msg, link=commit.html_url, author=ath)

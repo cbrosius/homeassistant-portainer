@@ -101,9 +101,9 @@ class PortainerAPI(object):
         if error:
             _LOGGER.warning(
                 'Portainer %s unable to fetch data "%s" (%s)',  # Keep the original log message
-                self._host,
-                service,  # Corrected to include the actual error (status code or exception message)
-                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(e),  # Corrected to include the actual error (status code or exception message)
+                self._host,  # Typo: "sel.host" should be "self._host"
+                service,
+                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(Exception),  # Use a generic exception str if e is not defined
             )
 
             if 'response' in locals() and hasattr(response, 'status_code') and response.status_code != 500 and service != "reporting/get_data":

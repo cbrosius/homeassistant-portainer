@@ -94,7 +94,7 @@ class PortainerAPI(object):
                 data = response.json()
                 _LOGGER.debug("Portainer %s query response: %s", self._host, data)
             else:
-                error = True
+                data = None  # Or any other appropriate value indicating no data
         except Exception:
             error = True
 
@@ -103,13 +103,12 @@ class PortainerAPI(object):
                 'Portainer %s unable to fetch data "%s" (%s)',  # Keep the original log message
                 self._host,
                 service,  # Corrected to include the actual error (status code or exception message)
-                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(e),
+                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(e),  # Corrected to include the actual error (status code or exception message)
             )
 
-            if errorcode != 500 and service != "reporting/get_data":
+            if 'response' in locals() and hasattr(response, 'status_code') and response.status_code != 500 and service != "reporting/get_data":
                 self._connected = False
-
-            self._error = errorcode
+            self._error = response.status_code if 'response' in locals() and hasattr(response, 'status_code') else "no_response"
             self.lock.release()
             return None
 

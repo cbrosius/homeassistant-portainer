@@ -1,5 +1,6 @@
 """Portainer API."""
 
+import requests
 from logging import getLogger
 from threading import Lock
 from typing import Any
@@ -26,17 +27,17 @@ class PortainerAPI(object):
         use_ssl: bool = False,
         verify_ssl: bool = True,
     ) -> None:
-        """Initialize the Portainer API."""
+        """Initialize with SSL certificate verification."""
         self._hass = hass
         self._host = host
         self._use_ssl = use_ssl
         self._api_key = api_key
+        self._verify_ssl = verify_ssl
+        self._session = requests.Session()
         self._protocol = "https" if self._use_ssl else "http"
-        self._ssl_verify = verify_ssl
-        if not self._use_ssl:
-            self._ssl_verify = True
         self._url = f"{self._protocol}://{self._host}/api/"
-
+        self._session.headers.update({"X-API-Key": self._api_key})
+        self._session.verify = self._verify_ssl
         self.lock = Lock()
         self._connected = False
         self._error = ""
@@ -61,7 +62,7 @@ class PortainerAPI(object):
     #   query
     # ---------------------------
     def query(
-        self, service: str, method: str = "get", params: dict[str, Any] | None = {}
+        self, service: str, method: str = "GET", params: dict[str, Any] | None = None
     ) -> Optional(list):
         """Retrieve data from Portainer."""
         self.lock.acquire()
@@ -75,29 +76,21 @@ class PortainerAPI(object):
                 params,
             )
 
-            headers = {
-                "Content-Type": "application/json",
-                "X-API-Key": f"{self._api_key}",
-            }
-            if method == "get":
-                response = requests_get(
-                    f"{self._url}{service}",
-                    headers=headers,
-                    params=params,
-                    verify=self._ssl_verify,
-                    timeout=10,
-                )
+            if method == "GET":
+                response = self._session.get(f"{self._url}{service}", params=params, timeout=10)
+            elif method == "POST":
+                response = self._session.post(f"{self._url}{service}", json=params, timeout=10)
+            elif method == "PUT":
+                response = self._session.put(f"{self._url}{service}", json=params, timeout=10)
+            elif method == "DELETE":
+                response = self._session.delete(f"{self._url}{service}", timeout=10)
+            else:
+                _LOGGER.error("Invalid HTTP method: %s", method)
+                self._error = "invalid_method"
+                return None
 
-            elif method == "post":
-                response = requests_post(
-                    f"{self._url}{service}",
-                    headers=headers,
-                    json=params,
-                    verify=self._ssl_verify,
-                    timeout=10,
-                )
-
-            if response.status_code == 200:
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            if response.content:  # Check if there's content before trying to parse JSON
                 data = response.json()
                 _LOGGER.debug("Portainer %s query response: %s", self._host, data)
             else:
@@ -106,16 +99,11 @@ class PortainerAPI(object):
             error = True
 
         if error:
-            try:
-                errorcode = response.status_code
-            except Exception:
-                errorcode = "no_response"
-
             _LOGGER.warning(
-                'Portainer %s unable to fetch data "%s" (%s)',
+                'Portainer %s unable to fetch data "%s" (%s)',  # Keep the original log message
                 self._host,
-                service,
-                errorcode,
+                service,  # Corrected to include the actual error (status code or exception message)
+                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(e),
             )
 
             if errorcode != 500 and service != "reporting/get_data":
@@ -145,14 +133,14 @@ class PortainerAPI(object):
         endpoints = self.query("endpoints")
         if not endpoints:
             _LOGGER.warning("No endpoints found or unable to fetch endpoints.")
-            return containers
-        for endpoint in endpoints:
-            endpoint_id = endpoint.get("Id")
-            if not endpoint_id:
-                continue
-            endpoint_containers = self.query(
-                f"endpoints/{endpoint_id}/docker/containers/json"
-            )
-            if endpoint_containers:
-                containers.extend(endpoint_containers)
+        else:
+            for endpoint in endpoints:
+                endpoint_id = endpoint.get("Id")
+                if not endpoint_id:
+                    continue
+                endpoint_containers = self.query(
+                    f"endpoints/{endpoint_id}/docker/containers/json"
+                )
+                if endpoint_containers:
+                    containers.extend(endpoint_containers)
         return containers

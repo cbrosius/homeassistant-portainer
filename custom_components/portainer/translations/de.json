@@ -1,0 +1,90 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "description": "Portainer-Integration einrichten.",
+                "data": {
+                    "name": "Name der Integration",
+                    "host": "Host",
+                    "api_key": "API-Schlüssel",
+                    "ssl": "SSL verwenden",
+                    "verify_ssl": "SSL-Zertifikat überprüfen"
+                }
+            }
+        },
+        "error": {
+            "name_exists": "Name existiert bereits.",
+            "no_response": "Keine Antwort vom Host.",
+            "401": "Keine Berechtigung für diesen Endpunkt.",
+            "404": "API auf diesem Host nicht gefunden.",
+            "500": "Interner Fehler."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Aktivieren oder deaktivieren Sie benutzerdefinierte Funktionen.",
+                "data": {
+                    "feature_switch_health_check": "Health Check",
+                    "feature_switch_restart_policy": "Neustart-Policy"
+                }
+            }
+        }
+    },
+    "services": {
+        "perform_container_action": {
+            "name": "Container-Aktion ausführen",
+            "description": "Führt eine angegebene Aktion (starten, stoppen, neu starten, beenden) für einen oder mehrere Container aus.",
+            "fields": {
+                "action": {
+                    "name": "Aktion",
+                    "description": "Die Aktion, die auf die Container angewendet werden soll."
+                },
+                "container_devices": {
+                    "name": "Container-Geräte",
+                    "description": "Eine Liste von Docker-Container-Geräten, auf die die Aktion angewendet werden soll."
+                }
+            }
+        },
+        "perform_stack_action": {
+            "name": "Stack-Aktion ausführen",
+            "description": "Führt eine angegebene Aktion (starten, stoppen) für einen oder mehrere Stacks aus.",
+            "fields": {
+                "action": {
+                    "name": "Aktion",
+                    "description": "Die Aktion, die auf die Stacks angewendet werden soll."
+                },
+                "stack_devices": {
+                    "name": "Stack-Geräte",
+                    "description": "Eine Liste von Portainer-Stack-Geräten, auf die die Aktion angewendet werden soll."
+                }
+            }
+        }
+    },
+    "issues": {
+        "missing_endpoint": {
+            "title": "Nicht verfügbarer Portainer-Endpunkt",
+            "description": "Der Endpunkt mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Endpunkt und löschen Sie ihn."
+        },
+        "missing_container": {
+            "title": "Nicht verfügbarer Portainer-Container",
+            "description": "Der Container {entity_name} mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Container und löschen Sie ihn."
+        },
+        "missing_stack": {
+            "title": "Nicht verfügbarer Portainer-Stack",
+            "description": "Der Stack mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Stack und löschen Sie ihn."
+        }
+    },
+    "repairs": {
+        "step": {
+            "confirm": {
+                "title": "Veraltetes Portainer-Gerät entfernen",
+                "description": "Das Gerät {device_name} ist in Portainer nicht mehr verfügbar. Möchten Sie dieses Gerät und alle zugehörigen Entitäten aus Home Assistant entfernen?"
+            }
+        },
+        "invalid_issue_id": {
+            "title": "Ungültiges Problem",
+            "description": "Der Reparaturvorgang wurde mit einer ungültigen Issue-ID gestartet."
+        }
+    }
+}

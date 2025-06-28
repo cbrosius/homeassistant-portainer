@@ -68,13 +68,13 @@ class PortainerAPI(object):
         self.lock.acquire()
         error = False
         try:
-            _LOGGER.debug(
-                "Portainer %s query: %s, %s, %s",
-                self._host,
-                service,
-                method,
-                params,
-            )
+            # _LOGGER.debug(
+            #     "Portainer %s query: %s, %s, %s",
+            #     self._host,
+            #     service,
+            #     method,
+            #     params,
+            # )
 
             if method == "GET":
                 response = self._session.get(

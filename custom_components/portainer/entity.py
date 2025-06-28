@@ -77,13 +77,13 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
             # Use Portainer's Id directly for unique_id if available
             portainer_id = self._data.get("Id")
             if portainer_id:
-                self._attr_unique_id = f"{self._inst.lower()}-{self.description.key}-{portainer_id}"
+                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
             else:
                 # fallback: just use config entry id and description key
-                self._attr_unique_id = f"{self._inst.lower()}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
+                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
         else:
             # build _attr_unique_id (no _uid)
-            self._attr_unique_id = f"{self._inst.lower()}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
+            self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
 
     @callback
     def _handle_coordinator_update(self) -> None:

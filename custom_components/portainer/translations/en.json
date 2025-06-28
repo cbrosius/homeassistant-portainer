@@ -28,7 +28,7 @@
                     "feature_switch_health_check": "Health check",
                     "feature_switch_restart_policy": "Restart policy"
                 }
-            }   
+            }
         }
     },
     "services": {
@@ -59,6 +59,32 @@
                     "description": "A list of Portainer stack devices to perform the action on."
                 }
             }
+        }
+    },
+    "issues": {
+        "missing_endpoint": {
+            "title": "Unavailable Portainer Endpoint",
+            "description": "The endpoint with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this endpoint and delete it."
+        },
+        "missing_container": {
+            "title": "Unavailable Portainer Container",
+            "description": "The container {entity_name} with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this container and delete it."
+        },
+        "missing_stack": {
+            "title": "Unavailable Portainer Stack",
+            "description": "The stack with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this stack and delete it."
+        }
+    },
+    "repairs": {
+        "step": {
+            "confirm": {
+                "title": "Remove Stale Portainer Device",
+                "description": "The device {device_name} is no longer available in Portainer. Do you want to remove this device and all its associated entities from Home Assistant?"
+            }
+        },
+        "invalid_issue_id": {
+            "title": "Invalid Issue",
+            "description": "The repair flow was started with an invalid issue ID."
         }
     }
 }

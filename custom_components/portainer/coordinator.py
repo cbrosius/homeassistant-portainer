@@ -8,6 +8,7 @@ from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -17,6 +18,11 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.issue_registry import (
+    async_create_issue,
+    async_delete_issue,
+    IssueSeverity,
+)
 
 from .const import (
     DOMAIN,
@@ -127,6 +133,66 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.lock.release()
         self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
         _LOGGER.debug("data: %s", self.raw_data)
+
+        # --- Home Assistant Repairs Integration (entity registry aware) ---
+        entity_reg = er.async_get(self.hass)
+
+        # Map entity_type to unique_id prefix and translation key
+        unique_id_prefixes = {
+            "endpoints": f"{DOMAIN}-endpoints-",
+            "containers": f"{DOMAIN}-containers-",
+            "stacks": f"{DOMAIN}-stacks-",
+        }
+
+        translation_keys = {
+            "endpoints": "missing_endpoint",
+            "containers": "missing_container",
+            "stacks": "missing_stack",
+        }
+
+        for entity_type in ["endpoints", "containers", "stacks"]:
+            if entity_type == "containers":
+                portainer_ids = {v["Id"] for v in self.raw_data["containers"].values()}
+            else:
+                portainer_ids = {
+                    str(k) for k in self.raw_data.get(entity_type, {}).keys()
+                }
+            prefix = unique_id_prefixes[entity_type]
+            translation_key = translation_keys[entity_type]
+
+            for entity in er.async_entries_for_config_entry(
+                entity_reg, self.config_entry.entry_id
+            ):
+                if entity.unique_id and entity.unique_id.startswith(prefix):
+                    portainer_id = entity.unique_id.split("-")[-1]
+                    entity_name = None
+
+                    # Extract entity name for containers
+                    if entity_type == "containers":
+                        # Attempt to retrieve the container name, defaulting to "Unknown" if not found
+                        entity_name = (
+                            entity.original_name or entity.entity_id or "Unknown"
+                        )
+
+                    if portainer_id not in portainer_ids:
+                        placeholders = {"entity_id": portainer_id}
+                        if entity_type == "containers":
+                            placeholders["entity_name"] = entity_name
+                        async_create_issue(
+                            self.hass,
+                            DOMAIN,
+                            f"missing_{entity_type}_{portainer_id}",
+                            is_fixable=True,
+                            severity=IssueSeverity.WARNING,
+                            translation_key=translation_key,
+                            translation_placeholders=placeholders,
+                        )
+                    else:
+                        async_delete_issue(
+                            self.hass, DOMAIN, f"missing_{entity_type}_{portainer_id}"
+                        )
+        # --- End Repairs Integration ---
+
         return self.raw_data
 
     # ---------------------------
@@ -184,7 +250,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 self.raw_data["containers"][eid] = parse_api(
                     data=self.raw_data["containers"][eid],
                     source=self.api.query(
-                        f"endpoints/{eid}/docker/containers/json", "get", {"all": True}
+                        f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
                     ),
                     key="Id",
                     vals=[
@@ -253,7 +319,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     # Get detailed info for every container
                     inspect_data_raw = self.api.query(
                         f"endpoints/{eid}/docker/containers/{cid}/json",
-                        "get",
+                        "GET",
                         {"all": True},
                     )
                     if not inspect_data_raw:

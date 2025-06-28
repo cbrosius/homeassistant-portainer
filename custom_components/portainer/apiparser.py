@@ -184,7 +184,7 @@ def parse_api(
         else:
             target_data = data  # If no UID, operate directly on the passed data dict
 
-        _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
+        # _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
 
         if vals:
             for val_def in vals:

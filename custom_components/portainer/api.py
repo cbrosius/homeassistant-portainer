@@ -77,11 +77,17 @@ class PortainerAPI(object):
             )
 
             if method == "GET":
-                response = self._session.get(f"{self._url}{service}", params=params, timeout=10)
+                response = self._session.get(
+                    f"{self._url}{service}", params=params, timeout=10
+                )
             elif method == "POST":
-                response = self._session.post(f"{self._url}{service}", json=params, timeout=10)
+                response = self._session.post(
+                    f"{self._url}{service}", json=params, timeout=10
+                )
             elif method == "PUT":
-                response = self._session.put(f"{self._url}{service}", json=params, timeout=10)
+                response = self._session.put(
+                    f"{self._url}{service}", json=params, timeout=10
+                )
             elif method == "DELETE":
                 response = self._session.delete(f"{self._url}{service}", timeout=10)
             else:
@@ -103,12 +109,25 @@ class PortainerAPI(object):
                 'Portainer %s unable to fetch data "%s" (%s)',  # Keep the original log message
                 self._host,  # Typo: "sel.host" should be "self._host"
                 service,
-                response.status_code if 'response' in locals() and hasattr(response, 'status_code') else str(Exception),  # Use a generic exception str if e is not defined
+                (
+                    response.status_code
+                    if "response" in locals() and hasattr(response, "status_code")
+                    else str(Exception)
+                ),  # Use a generic exception str if e is not defined
             )
 
-            if 'response' in locals() and hasattr(response, 'status_code') and response.status_code != 500 and service != "reporting/get_data":
+            if (
+                "response" in locals()
+                and hasattr(response, "status_code")
+                and response.status_code != 500
+                and service != "reporting/get_data"
+            ):
                 self._connected = False
-            self._error = response.status_code if 'response' in locals() and hasattr(response, 'status_code') else "no_response"
+            self._error = (
+                response.status_code
+                if "response" in locals() and hasattr(response, "status_code")
+                else "no_response"
+            )
             self.lock.release()
             return None
 

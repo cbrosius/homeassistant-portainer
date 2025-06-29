@@ -13,6 +13,6 @@
     "issue_tracker": "https://github.com/cbrosius/homeassistant-portainer/issues",
     "loggers": ["portainer"],
     "requirements": [],
-    "version": "1.0.7",
+    "version": "1.0.8",
     "repairs": true
 }

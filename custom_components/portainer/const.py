@@ -2,7 +2,6 @@
 
 from homeassistant.const import Platform
 from typing import Final
-
 PLATFORMS = [
     Platform.SENSOR,
     Platform.BUTTON,
@@ -31,3 +30,5 @@ CONF_FEATURE_HEALTH_CHECK: Final = "feature_switch_health_check"
 DEFAULT_FEATURE_HEALTH_CHECK = False
 CONF_FEATURE_RESTART_POLICY: Final = "feature_switch_restart_policy"
 DEFAULT_FEATURE_RESTART_POLICY = False
+CONF_FEATURE_USE_ACTION_BUTTONS: Final = "feature_use_action_buttons"
+DEFAULT_FEATURE_USE_ACTION_BUTTONS = True

@@ -15,11 +15,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers import entity_platform as ep
-
-from .const import DOMAIN
+from .const import DOMAIN, CONF_FEATURE_USE_ACTION_BUTTONS
 from .coordinator import PortainerCoordinator
 from .entity import PortainerEntity, async_create_sensors
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -126,7 +124,10 @@ async def async_setup_entry(
     """Set up the button platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
 
-    dispatcher = {
+    if not coordinator.data.get(CONF_FEATURE_USE_ACTION_BUTTONS, True):
+        return
+
+    dispatcher = {  # define dispatch if needed
         "ContainerActionButton": ContainerActionButton,
         "StackActionButton": StackActionButton,
     }

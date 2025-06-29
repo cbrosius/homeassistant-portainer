@@ -28,6 +28,11 @@
                     "feature_switch_health_check": "Health check",
                     "feature_switch_restart_policy": "Restart policy"
                 }
+            },
+            "select_items": {
+                "title": "Select Containers and Stacks",
+                "description": "Select the containers and stacks you want to monitor. You can also choose whether to create action buttons for these devices.",
+                "data": {"containers": "Containers", "stacks": "Stacks", "feature_use_action_buttons": "Create Action Buttons"}
             }
         }
     },

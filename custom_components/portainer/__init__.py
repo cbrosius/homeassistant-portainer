@@ -3,7 +3,7 @@
 from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import PortainerCoordinator
@@ -46,7 +46,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = PortainerCoordinator(hass, config_entry)
     hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
-    ] = coordinator  # Store coordinator
+    ] = (
+        coordinator
+    )  # Store coordinator
     await coordinator.async_config_entry_first_refresh()
 
     # Register services only once for the entire domain
@@ -79,5 +81,4 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         if not hass.data[DOMAIN] and DOMAIN in _REGISTERED_DOMAINS:
             await async_unregister_services(hass)
             _REGISTERED_DOMAINS.remove(DOMAIN)
-
     return unload_ok

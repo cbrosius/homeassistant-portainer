@@ -31,6 +31,7 @@ from .const import (
     # fature switch
     CONF_FEATURE_HEALTH_CHECK,
     DEFAULT_FEATURE_HEALTH_CHECK,
+    CONF_FEATURE_USE_ACTION_BUTTONS,
     CONF_FEATURE_RESTART_POLICY,
     DEFAULT_FEATURE_RESTART_POLICY,
 )
@@ -89,6 +90,17 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self._systemstats_errored = []
         self.datasets_hass_device_id = None
 
+        self.selected_endpoints = set(str(e) for e in config_entry.data.get("endpoints", []))
+        self.selected_containers = set(str(c) for c in config_entry.data.get("containers", []))
+        self.selected_stacks = set(str(s) for s in config_entry.data.get("stacks", []))
+        self.create_action_buttons = config_entry.data.get(
+            CONF_FEATURE_USE_ACTION_BUTTONS, True
+        )
+        if not self.create_action_buttons:
+            _LOGGER.info(
+                "Action Buttons will not be created for %s", self.name
+            )
+
     # ---------------------------
     #   connected
     # ---------------------------
@@ -132,7 +144,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         self.lock.release()
         self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
-        _LOGGER.debug("data: %s", self.raw_data)
+        # _LOGGER.debug("data: %s", self.raw_data)
 
         # --- Home Assistant Repairs Integration (entity registry aware) ---
         entity_reg = er.async_get(self.hass)
@@ -202,7 +214,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         """Get endpoints."""
 
         self.raw_data["endpoints"] = {}
-        self.raw_data["endpoints"] = parse_api(
+        all_endpoints = parse_api(
             data={},
             source=self.api.query("endpoints"),
             key="Id",
@@ -214,9 +226,12 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 {"name": "Status", "default": 0},
             ],
         )
-        if not self.raw_data["endpoints"]:
+        if not all_endpoints:
             return
-
+        # Only keep selected endpoints
+        for eid in all_endpoints:
+            if not self.selected_endpoints or str(eid) in self.selected_endpoints:
+                self.raw_data["endpoints"][eid] = all_endpoints[eid]
         for eid in self.raw_data["endpoints"]:
             self.raw_data["endpoints"][eid] = parse_api(
                 data=self.raw_data["endpoints"][eid],
@@ -247,7 +262,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         for eid in self.raw_data["endpoints"]:
             if self.raw_data["endpoints"][eid]["Status"] == 1:
                 self.raw_data["containers"][eid] = {}
-                self.raw_data["containers"][eid] = parse_api(
+                all_containers = parse_api(
                     data=self.raw_data["containers"][eid],
                     source=self.api.query(
                         f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
@@ -259,26 +274,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"name": "Image", "default": "unknown"},
                         {"name": "State", "default": "unknown"},
                         {"name": "Ports", "default": "unknown"},
-                        {
-                            "name": "Created",
-                            "default": 0,
-                            "convert": "utc_from_timestamp",
-                        },
-                        {
-                            "name": "Compose_Stack",
-                            "source": "Labels/com.docker.compose.project",
-                            "default": "",
-                        },
-                        {
-                            "name": "Compose_Service",
-                            "source": "Labels/com.docker.compose.service",
-                            "default": "",
-                        },
-                        {
-                            "name": "Compose_Version",
-                            "source": "Labels/com.docker.compose.version",
-                            "default": "",
-                        },
+                        {"name": "Created", "default": 0, "convert": "utc_from_timestamp"},
+                        {"name": "Compose_Stack", "source": "Labels/com.docker.compose.project", "default": ""},
+                        {"name": "Compose_Service", "source": "Labels/com.docker.compose.service", "default": ""},
+                        {"name": "Compose_Version", "source": "Labels/com.docker.compose.version", "default": ""},
                     ],
                     ensure_vals=[
                         {"name": "Name", "default": "unknown"},
@@ -286,14 +285,17 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"name": CUSTOM_ATTRIBUTE_ARRAY, "default": None},
                     ],
                 )
+                # Only keep selected containers and then process them
+                for cid in list(all_containers.keys()):
+                    if self.selected_containers and str(cid) not in self.selected_containers:
+                        del all_containers[cid]
+                        continue
 
-                # Loop through a copy of keys since we might delete from the dict
-                for cid in list(self.raw_data["containers"][eid].keys()):
-                    container = self.raw_data["containers"][eid][cid]
+                    container = all_containers[cid]
                     container["Environment"] = self.raw_data["endpoints"][eid]["Name"]
                     container["Name"] = container["Names"][0][1:]
                     container["ConfigEntryId"] = self.config_entry_id
-                    self.raw_data["containers"][eid][cid][CUSTOM_ATTRIBUTE_ARRAY] = {}
+                    container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 
                     # Format Published Ports
                     ports_list = []
@@ -323,8 +325,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"all": True},
                     )
                     if not inspect_data_raw:
-                        del self.raw_data["containers"][eid][cid]
+                        del all_containers[cid]
                         continue
+
+                    self.raw_data["containers"][eid][cid] = container
 
                     # Extract Network Mode
                     container["Network"] = inspect_data_raw.get("HostConfig", {}).get(
@@ -408,10 +412,12 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             parsed_details.get("Restart_Policy", "unknown")
                         )
 
+        self.raw_data["containers"][eid] = all_containers
+
         # ensure every environment has own set of containers
         self.raw_data["containers"] = {
-            f"{eid}{cid}": value
-            for eid, t_dict in self.raw_data["containers"].items()
+            str(cid): value
+            for t_dict in self.raw_data["containers"].values()
             for cid, value in t_dict.items()
         }
 
@@ -421,7 +427,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
     def get_stacks(self) -> None:
         """Get stacks."""
         self.raw_data["stacks"] = {}
-        self.raw_data["stacks"] = parse_api(
+        all_stacks = parse_api(
             data={},
             source=self.api.query("stacks"),
             key="Id",
@@ -436,3 +442,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 {"name": "ConfigEntryId", "default": self.config_entry_id},
             ],
         )
+        # Only keep selected stacks
+        for sid in all_stacks:
+            if not self.selected_stacks or str(sid) in self.selected_stacks:
+                self.raw_data["stacks"][str(sid)] = all_stacks[sid]

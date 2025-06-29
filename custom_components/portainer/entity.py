@@ -43,10 +43,20 @@ async def async_create_sensors(
             entities.append(obj)
         else:
             for uid in data:
+                # Only create container entities for selected containers
+                if description.func == "ContainerSensor" and coordinator.selected_containers:
+                    if str(uid) not in coordinator.selected_containers:
+                        continue
+                # Only create stack entities for selected stacks
+                if description.func == "StackSensor" and coordinator.selected_stacks:
+                    if str(uid) not in coordinator.selected_stacks:
+                        continue
                 obj = dispatcher[description.func](coordinator, description, uid)
+
                 entities.append(obj)
     return entities
 
+  
 
 # ---------------------------
 #   PortainerEntity

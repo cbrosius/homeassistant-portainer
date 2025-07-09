@@ -214,7 +214,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
         await self.hass.async_add_executor_job(
             self.coordinator.api.query,
             service_path,
-            "post",
+            "POST",
             api_params,
         )
         await self.coordinator.async_request_refresh()
@@ -296,7 +296,7 @@ class StackActionButton(PortainerEntity, ButtonEntity):
         # Based on _handle_perform_stack_action in __init__.py
         # The endpointId needs to be a query parameter for stack actions
         service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
-        method = "post"  # Start/Stop are POST requests
+        method = "POST"  # Start/Stop are POST requests
 
         try:
             await self.hass.async_add_executor_job(

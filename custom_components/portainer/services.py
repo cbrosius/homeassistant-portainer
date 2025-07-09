@@ -80,7 +80,7 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
             )
             try:
                 await hass.async_add_executor_job(
-                    coordinator.api.query, service_path, "post", {}
+                    coordinator.api.query, service_path, "POST", {}
                 )
                 _LOGGER.info(
                     "Successfully performed '%s' on container '%s' on instance '%s'",
@@ -157,7 +157,7 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
 
             try:
                 await hass.async_add_executor_job(
-                    coordinator.api.query, service_path, "post", {}
+                    coordinator.api.query, service_path, "POST", {}
                 )
                 _LOGGER.info(
                     "Successfully performed '%s' on stack '%s' on instance '%s'",

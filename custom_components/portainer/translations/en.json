@@ -4,11 +4,18 @@
             "user": {
                 "description": "Set up Portainer integration.",
                 "data": {
-                    "name": "Name of the integration",
+                    "name": "Name of the Portainer-Instance",
                     "host": "Host",
                     "api_key": "API key",
                     "ssl": "Use SSL",
                     "verify_ssl": "Verify SSL certificate"
+                }
+            },
+            "endpoints": {
+                "title": "Select Endpoints",
+                "description": "Select the endpoints you wish to monitor. Each endpoint represents a separate Portainer instance or environment.",
+                "data": {
+                    "endpoints": "Endpoints"
                 }
             }
         },

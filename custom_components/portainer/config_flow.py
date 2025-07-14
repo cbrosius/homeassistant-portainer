@@ -177,9 +177,6 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                 }
             ),
-            description_placeholders={
-                "endpoints": ", ".join(endpoint_options.values())
-            },
             errors=errors,
         )
 
@@ -197,9 +194,9 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_features()  # Corrected line
 
         # Fetch containers and stacks for selected endpoints
-        containers = []
-        stacks = []
         try:
+            containers = []
+            stacks = []
             for endpoint_id in self.options["endpoints"]:
                 containers += await self.hass.async_add_executor_job(
                     self.api.get_containers, endpoint_id
@@ -210,7 +207,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
             return self.async_abort(reason="item_fetch_failed")
-
+        
         container_options = {str(c["id"]): c["name"] for c in containers}
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
@@ -222,11 +219,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         if stack_options:
             schema_dict[vol.Optional("stacks", default=[])] = cv.multi_select(
                 stack_options
-            )
-        # schema_dict[vol.Optional(CONF_FEATURE_USE_ACTION_BUTTONS, default=DEFAULT_ACTIONS_ENTITIES)] = bool # moved to feature step
-        if not schema_dict:
-            return self.async_abort(reason="no_items_found")
-
+            )        
         return self.async_show_form(
             step_id="select_items",
             data_schema=vol.Schema(schema_dict),
@@ -412,57 +405,53 @@ class PortainerOptionsFlow(OptionsFlow):
             return await self.async_step_features()  # Corrected line
 
         # Fetch containers and stacks for selected endpoints
-        api = PortainerAPI(
-            self.hass,
-            self.config_entry.data[CONF_HOST],
-            self.config_entry.data[CONF_API_KEY],
-            self.config_entry.data[CONF_SSL],
-            self.config_entry.data[CONF_VERIFY_SSL],
-        )
-        containers = []
-        stacks = []
-        selected_endpoints = getattr(
-            self,
-            "selected_endpoints",
-            self.config_entry.options.get(
-                "endpoints", self.config_entry.data.get("endpoints", [])
-            ),
-        )
-        for endpoint_id in selected_endpoints:
-            containers += await self.hass.async_add_executor_job(
-                api.get_containers, endpoint_id
+        try:
+            api = PortainerAPI(
+                self.hass,
+                self.config_entry.data[CONF_HOST],
+                self.config_entry.data[CONF_API_KEY],
+                self.config_entry.data[CONF_SSL],
+                self.config_entry.data[CONF_VERIFY_SSL],
             )
-            stacks += await self.hass.async_add_executor_job(
-                api.get_stacks, endpoint_id
+            containers = []
+            stacks = []
+            selected_endpoints = getattr(
+                self,
+                "selected_endpoints",
+                self.config_entry.options.get(
+                    "endpoints", self.config_entry.data.get("endpoints", [])
+                ),
             )
-        container_options = {str(c["id"]): c["name"] for c in containers}
-        stack_options = {str(s["id"]): s["name"] for s in stacks}
-        current_containers = self.config_entry.options.get(
-            "containers", self.config_entry.data.get("containers", [])
-        )
-        current_stacks = self.config_entry.options.get(
-            "stacks", self.config_entry.data.get("stacks", [])
-        )
-        schema_dict = {}
-        if container_options:
-            schema_dict[vol.Optional("containers", default=current_containers)] = (
-                cv.multi_select(container_options)
+            for endpoint_id in selected_endpoints:
+                containers += await self.hass.async_add_executor_job(
+                    api.get_containers, endpoint_id
+                )
+                stacks += await self.hass.async_add_executor_job(
+                    api.get_stacks, endpoint_id
+                )
+            container_options = {str(c["id"]): c["name"] for c in containers}
+            stack_options = {str(s["id"]): s["name"] for s in stacks}
+            current_containers = self.config_entry.options.get(
+                "containers", self.config_entry.data.get("containers", [])
             )
-        if stack_options:
-            schema_dict[vol.Optional("stacks", default=current_stacks)] = (
-                cv.multi_select(stack_options)
+            current_stacks = self.config_entry.options.get(
+                "stacks", self.config_entry.data.get("stacks", [])
             )
-            schema_dict[vol.Optional("stacks", default=current_stacks)] = (
-                cv.multi_select(stack_options)
+            schema_dict = {
+                vol.Optional("containers", default=current_containers): cv.multi_select(container_options),
+                vol.Optional("stacks", default=current_stacks): cv.multi_select(stack_options),
+            }
+            return self.async_show_form(
+                step_id="select_items",
+                data_schema=vol.Schema(schema_dict),
+                description_placeholders={
+                    "containers": ", ".join(container_options.values()),
+                    "stacks": ", ".join(stack_options.values()),
+                },
             )
-        return self.async_show_form(
-            step_id="select_items",
-            data_schema=vol.Schema(schema_dict),
-            description_placeholders={
-                "containers": ", ".join(container_options.values()),
-                "stacks": ", ".join(stack_options.values()),
-            },
-        )
+        except Exception as exc:
+            _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
+            return self.async_abort(reason="item_fetch_failed")
 
     async def async_step_features(
         self, user_input: dict[str, Any] | None = None

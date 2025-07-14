@@ -46,9 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = PortainerCoordinator(hass, config_entry)
     hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
-    ] = (
-        coordinator
-    )  # Store coordinator
+    ] = coordinator  # Store coordinator
     await coordinator.async_config_entry_first_refresh()
 
     # Register services only once for the entire domain

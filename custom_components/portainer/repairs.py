@@ -1,6 +1,5 @@
 """Repairs flow for Portainer."""
 
-
 from __future__ import annotations
 
 import logging
@@ -70,7 +69,10 @@ class PortainerFixFlow(RepairsFlow):
                 for entity in entities:
                     entity_reg.async_remove(entity.entity_id)
                 device_reg.async_remove_device(device_entry.id)
-                _LOGGER.info("Removed stale Portainer device and its entities: %s", self._device_name)
+                _LOGGER.info(
+                    "Removed stale Portainer device and its entities: %s",
+                    self._device_name,
+                )
 
             return self.async_create_entry(title="", data={})
 

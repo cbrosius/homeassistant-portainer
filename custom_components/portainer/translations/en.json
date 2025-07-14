@@ -81,15 +81,5 @@
         }
     },
     "repairs": {
-        "step": {
-            "confirm": {
-                "title": "Remove Stale Portainer Device",
-                "description": "The device {device_name} is no longer available in Portainer. Do you want to remove this device and all its associated entities from Home Assistant?"
-            }
-        },
-        "invalid_issue_id": {
-            "title": "Invalid Issue",
-            "description": "The repair flow was started with an invalid issue ID."
-        }
     }
 }

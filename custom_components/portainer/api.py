@@ -176,7 +176,11 @@ class PortainerAPI(object):
         endpoint_list = []
         for endpoint in endpoints:
             endpoint_id = endpoint.get("Id") or endpoint.get("id")
-            endpoint_name = endpoint.get("Name") or endpoint.get("name") or f"Endpoint {endpoint_id}"
+            endpoint_name = (
+                endpoint.get("Name")
+                or endpoint.get("name")
+                or f"Endpoint {endpoint_id}"
+            )
             if endpoint_id:
                 endpoint_list.append({"id": str(endpoint_id), "name": endpoint_name})
         return endpoint_list
@@ -195,7 +199,11 @@ class PortainerAPI(object):
         for container in containers:
             container_id = container.get("Id") or container.get("id")
             # Remove leading slash from container name if present
-            container_name = container.get("Names", [None])[0] or container.get("name") or f"Container {container_id}"
+            container_name = (
+                container.get("Names", [None])[0]
+                or container.get("name")
+                or f"Container {container_id}"
+            )
             if container_name and container_name.startswith("/"):
                 container_name = container_name[1:]
             if container_id:

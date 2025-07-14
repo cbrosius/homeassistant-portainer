@@ -2,6 +2,7 @@
 
 from homeassistant.const import Platform
 from typing import Final
+
 PLATFORMS = [
     Platform.SENSOR,
     Platform.BUTTON,

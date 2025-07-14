@@ -90,16 +90,20 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self._systemstats_errored = []
         self.datasets_hass_device_id = None
 
-        self.selected_endpoints = set(str(e) for e in config_entry.data.get("endpoints", []))
-        self.selected_containers = set(str(c) for c in config_entry.data.get("containers", []))
+        self.selected_endpoints = set(
+            str(e) for e in config_entry.data.get("endpoints", [])
+        )
+        self.selected_containers = set(
+            str(c) for c in config_entry.data.get("containers", [])
+        )
         self.selected_stacks = set(str(s) for s in config_entry.data.get("stacks", []))
-        self.create_action_buttons = config_entry.data.get(
-            CONF_FEATURE_USE_ACTION_BUTTONS, True
+        self.create_action_buttons = (
+            config_entry.data.get(CONF_FEATURE_USE_ACTION_BUTTONS, True)
+            if config_entry.options.get(CONF_FEATURE_USE_ACTION_BUTTONS) is None
+            else config_entry.options.get(CONF_FEATURE_USE_ACTION_BUTTONS)
         )
         if not self.create_action_buttons:
-            _LOGGER.info(
-                "Action Buttons will not be created for %s", self.name
-            )
+            _LOGGER.info("Action Buttons will not be created for %s", self.name)
 
     # ---------------------------
     #   connected
@@ -274,10 +278,26 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         {"name": "Image", "default": "unknown"},
                         {"name": "State", "default": "unknown"},
                         {"name": "Ports", "default": "unknown"},
-                        {"name": "Created", "default": 0, "convert": "utc_from_timestamp"},
-                        {"name": "Compose_Stack", "source": "Labels/com.docker.compose.project", "default": ""},
-                        {"name": "Compose_Service", "source": "Labels/com.docker.compose.service", "default": ""},
-                        {"name": "Compose_Version", "source": "Labels/com.docker.compose.version", "default": ""},
+                        {
+                            "name": "Created",
+                            "default": 0,
+                            "convert": "utc_from_timestamp",
+                        },
+                        {
+                            "name": "Compose_Stack",
+                            "source": "Labels/com.docker.compose.project",
+                            "default": "",
+                        },
+                        {
+                            "name": "Compose_Service",
+                            "source": "Labels/com.docker.compose.service",
+                            "default": "",
+                        },
+                        {
+                            "name": "Compose_Version",
+                            "source": "Labels/com.docker.compose.version",
+                            "default": "",
+                        },
                     ],
                     ensure_vals=[
                         {"name": "Name", "default": "unknown"},
@@ -287,7 +307,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 )
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
-                    if self.selected_containers and str(cid) not in self.selected_containers:
+                    if (
+                        self.selected_containers
+                        and str(cid) not in self.selected_containers
+                    ):
                         del all_containers[cid]
                         continue
 

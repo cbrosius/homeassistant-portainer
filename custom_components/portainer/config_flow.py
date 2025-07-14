@@ -34,11 +34,13 @@ from .const import (
     CONF_FEATURE_RESTART_POLICY,
     DEFAULT_FEATURE_RESTART_POLICY,
     CONF_FEATURE_USE_ACTION_BUTTONS,
-    DEFAULT_FEATURE_USE_ACTION_BUTTONS,)
+    DEFAULT_FEATURE_USE_ACTION_BUTTONS,
+)
 
 from .api import PortainerAPI
 
 _LOGGER = getLogger(__name__)
+
 
 # ---------------------------
 #   configured_instances
@@ -120,17 +122,28 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME, default=str(user_input.get(CONF_NAME, DEFAULT_DEVICE_NAME))): str,
-                    vol.Required(CONF_HOST, default=str(user_input.get(CONF_HOST, DEFAULT_HOST))): str,
-                    vol.Required(CONF_API_KEY, default=str(user_input.get(CONF_API_KEY, ""))): str,
+                    vol.Required(
+                        CONF_NAME,
+                        default=str(user_input.get(CONF_NAME, DEFAULT_DEVICE_NAME)),
+                    ): str,
+                    vol.Required(
+                        CONF_HOST, default=str(user_input.get(CONF_HOST, DEFAULT_HOST))
+                    ): str,
+                    vol.Required(
+                        CONF_API_KEY, default=str(user_input.get(CONF_API_KEY, ""))
+                    ): str,
                     vol.Optional(CONF_SSL, default=bool(DEFAULT_SSL)): bool,
-                    vol.Optional(CONF_VERIFY_SSL, default=bool(DEFAULT_SSL_VERIFY)): bool,
+                    vol.Optional(
+                        CONF_VERIFY_SSL, default=bool(DEFAULT_SSL_VERIFY)
+                    ): bool,
                 }
             ),
             errors=errors,
         )
 
-    async def async_step_endpoints(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_endpoints(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Step to select Portainer endpoints to import."""
         errors = {}
         if user_input is not None:
@@ -157,21 +170,29 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="endpoints",
-            data_schema=vol.Schema({
-                vol.Required("endpoints", default=[]): cv.multi_select(endpoint_options)
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("endpoints", default=[]): cv.multi_select(
+                        endpoint_options
+                    )
+                }
+            ),
             description_placeholders={
                 "endpoints": ", ".join(endpoint_options.values())
             },
             errors=errors,
         )
 
-    async def async_step_select_items(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_select_items(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Step to select containers and stacks from selected endpoints."""
         if user_input is not None:
             # Save selected containers and stacks, finish config flow
             self.options["containers"] = user_input.get("containers", [])
-            self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(CONF_FEATURE_USE_ACTION_BUTTONS, True)
+            self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(
+                CONF_FEATURE_USE_ACTION_BUTTONS, True
+            )
             self.options["stacks"] = user_input.get("stacks", [])
             return await self.async_step_features()  # Corrected line
 
@@ -180,23 +201,30 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         stacks = []
         try:
             for endpoint_id in self.options["endpoints"]:
-                containers += await self.hass.async_add_executor_job(self.api.get_containers, endpoint_id)
-                stacks += await self.hass.async_add_executor_job(self.api.get_stacks, endpoint_id)
+                containers += await self.hass.async_add_executor_job(
+                    self.api.get_containers, endpoint_id
+                )
+                stacks += await self.hass.async_add_executor_job(
+                    self.api.get_stacks, endpoint_id
+                )
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
             return self.async_abort(reason="item_fetch_failed")
-
 
         container_options = {str(c["id"]): c["name"] for c in containers}
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
         schema_dict = {}
         if container_options:
-            schema_dict[vol.Optional("containers", default=[])] = cv.multi_select(container_options)
+            schema_dict[vol.Optional("containers", default=[])] = cv.multi_select(
+                container_options
+            )
         if stack_options:
-            schema_dict[vol.Optional("stacks", default=[])] = cv.multi_select(stack_options)
+            schema_dict[vol.Optional("stacks", default=[])] = cv.multi_select(
+                stack_options
+            )
         # schema_dict[vol.Optional(CONF_FEATURE_USE_ACTION_BUTTONS, default=DEFAULT_ACTIONS_ENTITIES)] = bool # moved to feature step
-        if not schema_dict:  
+        if not schema_dict:
             return self.async_abort(reason="no_items_found")
 
         return self.async_show_form(
@@ -208,34 +236,41 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_features(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_features(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Step for feature switches (existing options)."""
         if user_input is not None:
             self.options.update(user_input)
-            return self.async_create_entry(title="", data=self.options)
+            return self.async_create_entry(
+                title=self.options[CONF_NAME], data=self.options
+            )
 
         return self.async_show_form(
             step_id="features",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_FEATURE_HEALTH_CHECK,
-                    default=self.options.get(
-                        CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
-                    ),
-                ): bool,
-                vol.Optional(
-                    CONF_FEATURE_RESTART_POLICY,
-                    default=self.options.get(
-                        CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
-                    ),
-                ): bool,
-                vol.Optional(
-                    CONF_FEATURE_USE_ACTION_BUTTONS,
-                    default=self.options.get(
-                        CONF_FEATURE_USE_ACTION_BUTTONS, DEFAULT_FEATURE_USE_ACTION_BUTTONS
-                    ),
-                ): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_FEATURE_HEALTH_CHECK,
+                        default=self.options.get(
+                            CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FEATURE_RESTART_POLICY,
+                        default=self.options.get(
+                            CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FEATURE_USE_ACTION_BUTTONS,
+                        default=self.options.get(
+                            CONF_FEATURE_USE_ACTION_BUTTONS,
+                            DEFAULT_FEATURE_USE_ACTION_BUTTONS,
+                        ),
+                    ): bool,
+                }
+            ),
         )
 
     @staticmethod
@@ -246,7 +281,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class PortainerOptionsFlow(OptionsFlow):
     """Handle options flow for Portainer integration, including endpoint/container/stack selection."""
-  
+
     def __init__(self):
         """Initialize the Portainer options flow."""
 
@@ -264,7 +299,9 @@ class PortainerOptionsFlow(OptionsFlow):
             device_registry = dr.async_get(self.hass)
             for endpoint_id in removed_endpoints:
                 # Remove the endpoint device itself
-                device = device_registry.async_get_device(identifiers={(DOMAIN, endpoint_id)})
+                device = device_registry.async_get_device(
+                    identifiers={(DOMAIN, endpoint_id)}
+                )
                 if device:
                     device_registry.async_remove_device(device.id)
 
@@ -284,12 +321,18 @@ class PortainerOptionsFlow(OptionsFlow):
         try:
             endpoints = await self.hass.async_add_executor_job(api.get_endpoints)
             endpoint_options = {str(ep["id"]): ep["name"] for ep in endpoints}
-            current = self.config_entry.options.get("endpoints", self.config_entry.data.get("endpoints", []))
+            current = self.config_entry.options.get(
+                "endpoints", self.config_entry.data.get("endpoints", [])
+            )
             return self.async_show_form(
                 step_id="init",
-                data_schema=vol.Schema({
-                    vol.Required("endpoints", default=current): cv.multi_select(endpoint_options)
-                }),
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("endpoints", default=current): cv.multi_select(
+                            endpoint_options
+                        )
+                    }
+                ),
                 description_placeholders={
                     "endpoints": ", ".join(endpoint_options.values())
                 },
@@ -328,32 +371,46 @@ class PortainerOptionsFlow(OptionsFlow):
                         if (
                             device_type == DOMAIN
                             and device.model == device_type_str
-                            and any(removed_id in device_id for removed_id in device_ids)
+                            and any(
+                                removed_id in device_id for removed_id in device_ids
+                            )
                         ):
                             device_registry.async_remove_device(device.id)
-                            _LOGGER.debug(f"Removed {device_type_str.lower()} device: {device.id}")
+                            _LOGGER.debug(
+                                f"Removed {device_type_str.lower()} device: {device.id}"
+                            )
                             return True  # Indicate that the device was removed
                 return False
 
             entity_registry = er.async_get(self.hass)  # Get the entity registry
 
             # Iterate and remove container devices
-            for device in dr.async_entries_for_config_entry(device_registry, self.config_entry.entry_id):
+            for device in dr.async_entries_for_config_entry(
+                device_registry, self.config_entry.entry_id
+            ):
                 if _remove_device(device, removed_containers, "Container"):
-                    for entity in er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True):
+                    for entity in er.async_entries_for_device(
+                        entity_registry, device.id, include_disabled_entities=True
+                    ):
                         entity_registry.async_remove(entity.entity_id)
 
             # Iterate and remove stack devices
-            for device in dr.async_entries_for_config_entry(device_registry, self.config_entry.entry_id):
+            for device in dr.async_entries_for_config_entry(
+                device_registry, self.config_entry.entry_id
+            ):
                 if _remove_device(device, removed_stacks, "Stack"):
-                    for entity in er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True):
+                    for entity in er.async_entries_for_device(
+                        entity_registry, device.id, include_disabled_entities=True
+                    ):
                         entity_registry.async_remove(entity.entity_id)
 
             self.options["containers"] = user_input.get("containers", [])
             self.options["stacks"] = user_input.get("stacks", [])
-            self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(CONF_FEATURE_USE_ACTION_BUTTONS, True)
+            self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(
+                CONF_FEATURE_USE_ACTION_BUTTONS, True
+            )
             return await self.async_step_features()  # Corrected line
-          
+
         # Fetch containers and stacks for selected endpoints
         api = PortainerAPI(
             self.hass,
@@ -364,20 +421,40 @@ class PortainerOptionsFlow(OptionsFlow):
         )
         containers = []
         stacks = []
-        selected_endpoints = getattr(self, "selected_endpoints", self.config_entry.options.get("endpoints", self.config_entry.data.get("endpoints", [])))
+        selected_endpoints = getattr(
+            self,
+            "selected_endpoints",
+            self.config_entry.options.get(
+                "endpoints", self.config_entry.data.get("endpoints", [])
+            ),
+        )
         for endpoint_id in selected_endpoints:
-            containers += await self.hass.async_add_executor_job(api.get_containers, endpoint_id)
-            stacks += await self.hass.async_add_executor_job(api.get_stacks, endpoint_id)
+            containers += await self.hass.async_add_executor_job(
+                api.get_containers, endpoint_id
+            )
+            stacks += await self.hass.async_add_executor_job(
+                api.get_stacks, endpoint_id
+            )
         container_options = {str(c["id"]): c["name"] for c in containers}
         stack_options = {str(s["id"]): s["name"] for s in stacks}
-        current_containers = self.config_entry.options.get("containers", self.config_entry.data.get("containers", []))
-        current_stacks = self.config_entry.options.get("stacks", self.config_entry.data.get("stacks", []))
+        current_containers = self.config_entry.options.get(
+            "containers", self.config_entry.data.get("containers", [])
+        )
+        current_stacks = self.config_entry.options.get(
+            "stacks", self.config_entry.data.get("stacks", [])
+        )
         schema_dict = {}
         if container_options:
-            schema_dict[vol.Optional("containers", default=current_containers)] = cv.multi_select(container_options)
+            schema_dict[vol.Optional("containers", default=current_containers)] = (
+                cv.multi_select(container_options)
+            )
         if stack_options:
-            schema_dict[vol.Optional("stacks", default=current_stacks)] = cv.multi_select(stack_options)
-            schema_dict[vol.Optional("stacks", default=current_stacks)] = cv.multi_select(stack_options)
+            schema_dict[vol.Optional("stacks", default=current_stacks)] = (
+                cv.multi_select(stack_options)
+            )
+            schema_dict[vol.Optional("stacks", default=current_stacks)] = (
+                cv.multi_select(stack_options)
+            )
         return self.async_show_form(
             step_id="select_items",
             data_schema=vol.Schema(schema_dict),
@@ -386,8 +463,10 @@ class PortainerOptionsFlow(OptionsFlow):
                 "stacks": ", ".join(stack_options.values()),
             },
         )
-    
-    async def async_step_features(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+
+    async def async_step_features(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Step for feature switches (existing options)."""
         if user_input is not None:
             self.options.update(user_input)
@@ -395,24 +474,27 @@ class PortainerOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="features",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_FEATURE_HEALTH_CHECK,
-                    default=self.options.get(
-                        CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
-                    ),
-                ): bool,
-                vol.Optional(
-                    CONF_FEATURE_RESTART_POLICY,
-                    default=self.options.get(
-                        CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
-                    ),
-                ): bool,
-                vol.Optional(
-                    CONF_FEATURE_USE_ACTION_BUTTONS,
-                    default=self.options.get(
-                        CONF_FEATURE_USE_ACTION_BUTTONS, DEFAULT_FEATURE_USE_ACTION_BUTTONS
-                    ),
-                ): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_FEATURE_HEALTH_CHECK,
+                        default=self.options.get(
+                            CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FEATURE_RESTART_POLICY,
+                        default=self.options.get(
+                            CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FEATURE_USE_ACTION_BUTTONS,
+                        default=self.options.get(
+                            CONF_FEATURE_USE_ACTION_BUTTONS,
+                            DEFAULT_FEATURE_USE_ACTION_BUTTONS,
+                        ),
+                    ): bool,
+                }
+            ),
         )

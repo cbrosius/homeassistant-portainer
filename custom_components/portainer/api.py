@@ -190,11 +190,11 @@ class PortainerAPI(object):
     # ---------------------------
     def get_containers(self, endpoint_id: str) -> list:
         """Get all containers for a specific endpoint."""
-        containers = self.query(f"endpoints/{endpoint_id}/docker/containers/json")
+        containers = self.query(f"endpoints/{endpoint_id}/docker/containers/json?all=1")
         if not containers:
             _LOGGER.warning(f"No containers found for endpoint {endpoint_id}.")
             return []
-        # Normalize keys to 'id' and 'name' for config flow
+        # Normalize keys to 'id', 'name', and add 'status' for config flow
         container_list = []
         for container in containers:
             container_id = container.get("Id") or container.get("id")
@@ -206,8 +206,13 @@ class PortainerAPI(object):
             )
             if container_name and container_name.startswith("/"):
                 container_name = container_name[1:]
+            status = container.get("State") or container.get("Status") or "unknown"
             if container_id:
-                container_list.append({"id": str(container_id), "name": container_name})
+                container_list.append({
+                    "id": str(container_id),
+                    "name": container_name,
+                    "status": status
+                })
         return container_list
 
     # ---------------------------

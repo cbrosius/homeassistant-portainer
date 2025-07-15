@@ -207,8 +207,9 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
             return self.async_abort(reason="item_fetch_failed")
-        
-        container_options = {str(c["id"]): c["name"] for c in containers}
+
+        # Show status in container name
+        container_options = {str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers}
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
         schema_dict = {}
@@ -219,7 +220,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         if stack_options:
             schema_dict[vol.Optional("stacks", default=[])] = cv.multi_select(
                 stack_options
-            )        
+            )
         return self.async_show_form(
             step_id="select_items",
             data_schema=vol.Schema(schema_dict),
@@ -429,7 +430,8 @@ class PortainerOptionsFlow(OptionsFlow):
                 stacks += await self.hass.async_add_executor_job(
                     api.get_stacks, endpoint_id
                 )
-            container_options = {str(c["id"]): c["name"] for c in containers}
+            # Show status in container name
+            container_options = {str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers}
             stack_options = {str(s["id"]): s["name"] for s in stacks}
             current_containers = self.config_entry.options.get(
                 "containers", self.config_entry.data.get("containers", [])

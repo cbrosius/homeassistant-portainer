@@ -91,12 +91,23 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.datasets_hass_device_id = None
 
         self.selected_endpoints = set(
-            str(e) for e in config_entry.data.get("endpoints", [])
+            str(e)
+            for e in config_entry.options.get(
+                "endpoints", config_entry.data.get("endpoints", [])
+            )
         )
         self.selected_containers = set(
-            str(c) for c in config_entry.data.get("containers", [])
+            str(c)
+            for c in config_entry.options.get(
+                "containers", config_entry.data.get("containers", [])
+            )
         )
-        self.selected_stacks = set(str(s) for s in config_entry.data.get("stacks", []))
+        self.selected_stacks = set(
+            str(s)
+            for s in config_entry.options.get(
+                "stacks", config_entry.data.get("stacks", [])
+            )
+        )
         self.create_action_buttons = (
             config_entry.data.get(CONF_FEATURE_USE_ACTION_BUTTONS, True)
             if config_entry.options.get(CONF_FEATURE_USE_ACTION_BUTTONS) is None

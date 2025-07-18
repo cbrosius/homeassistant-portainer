@@ -209,7 +209,9 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="item_fetch_failed")
 
         # Show status in container name
-        container_options = {str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers}
+        container_options = {
+            str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
+        }
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
         schema_dict = {}
@@ -431,22 +433,36 @@ class PortainerOptionsFlow(OptionsFlow):
                     api.get_stacks, endpoint_id
                 )
             # Show status in container name
-            container_options = {str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers}
-            stack_options = {str(s["id"]): s['name'] for s in stacks}
+            container_options = {
+                str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
+            }
+            stack_options = {str(s["id"]): s["name"] for s in stacks}
 
             valid_container_ids = set(container_options.keys())
             valid_stack_ids = set(stack_options.keys())
 
-            current_containers = [cid for cid in self.config_entry.options.get(
-                "containers", self.config_entry.data.get("containers", [])
-            ) if cid in valid_container_ids]
-            current_stacks = [sid for sid in self.config_entry.options.get(
-                "stacks", self.config_entry.data.get("stacks", [])
-            ) if sid in valid_stack_ids]
+            current_containers = [
+                cid
+                for cid in self.config_entry.options.get(
+                    "containers", self.config_entry.data.get("containers", [])
+                )
+                if cid in valid_container_ids
+            ]
+            current_stacks = [
+                sid
+                for sid in self.config_entry.options.get(
+                    "stacks", self.config_entry.data.get("stacks", [])
+                )
+                if sid in valid_stack_ids
+            ]
 
             schema_dict = {
-                vol.Optional("containers", default=current_containers): cv.multi_select(container_options),
-                vol.Optional("stacks", default=current_stacks): cv.multi_select(stack_options),
+                vol.Optional("containers", default=current_containers): cv.multi_select(
+                    container_options
+                ),
+                vol.Optional("stacks", default=current_stacks): cv.multi_select(
+                    stack_options
+                ),
             }
             return self.async_show_form(
                 step_id="select_items",

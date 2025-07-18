@@ -2,94 +2,98 @@
     "config": {
         "step": {
             "user": {
-                "description": "Portainer-Integration einrichten.",
+                "title": "Portainer-Integration einrichten",
+                "description": "Geben Sie die Verbindungsdetails für Ihre Portainer-Instanz ein.",
                 "data": {
                     "name": "Name der Integration",
-                    "host": "Host",
-                    "api_key": "API-Schlüssel",
+                    "host": "Host (z.B. 192.168.0.2:9000)",
+                    "api_key": "Zugriffstoken",
                     "ssl": "SSL verwenden",
                     "verify_ssl": "SSL-Zertifikat überprüfen"
+                }
+            },
+            "endpoints": {
+                "title": "Endpunkte auswählen",
+                "description": "Wählen Sie die Portainer-Endpunkte aus, die Sie in Home Assistant importieren möchten.",
+                "data": {
+                    "endpoints": "Endpunkte"
+                }
+            },
+            "select_items": {
+                "title": "Elemente auswählen",
+                "description": "Wählen Sie die Container und Stacks aus, die Sie in Home Assistant importieren möchten.",
+                "data": {
+                    "containers": "Container",
+                    "stacks": "Stacks"
+                }
+            },
+            "features": {
+                "title": "Funktionen konfigurieren",
+                "description": "Aktivieren oder deaktivieren Sie zusätzliche Funktionen für die Integration.",
+                "data": {
+                    "feature_switch_health_check": "Integritätsprüfungssensor aktivieren",
+                    "feature_switch_restart_policy": "Neustartrichtliniensensor aktivieren",
+                    "feature_use_action_buttons": "Aktionsschaltflächen für Container und Stacks erstellen"
                 }
             }
         },
         "error": {
-            "name_exists": "Name existiert bereits.",
-            "no_response": "Keine Antwort vom Host.",
-            "401": "Keine Berechtigung für diesen Endpunkt.",
-            "404": "API auf diesem Host nicht gefunden.",
-            "500": "Interner Fehler."
+            "name_exists": "Eine Integration mit diesem Namen existiert bereits.",
+            "cannot_connect": "Verbindung fehlgeschlagen. Überprüfen Sie Host und Zugriffstoken.",
+            "endpoint_fetch_failed": "Endpunkte konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut.",
+            "no_endpoints_found": "Keine Endpunkte in der Portainer-Instanz gefunden.",
+            "item_fetch_failed": "Container/Stacks konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut."
+        },
+        "abort": {
+            "already_configured": "Diese Portainer-Instanz ist bereits konfiguriert."
         }
     },
     "options": {
         "step": {
             "init": {
-                "description": "Aktivieren oder deaktivieren Sie benutzerdefinierte Funktionen.",
+                "title": "Portainer-Endpunkte verwalten",
+                "description": "Wählen Sie die Portainer-Endpunkte aus, die Sie in Home Assistant überwachen möchten.",
                 "data": {
-                    "feature_switch_health_check": "Health Check",
-                    "feature_switch_restart_policy": "Neustart-Policy"
+                    "endpoints": "Endpunkte"
                 }
             },
             "select_items": {
-                "title": "Container und Stacks ausw\u00e4hlen",
-                "description": "W\u00e4hlen Sie die Container und Stacks aus, die Sie \u00fcberwachen m\u00f6chten. Sie k\u00f6nnen auch w\u00e4hlen, ob Aktionstasten f\u00fcr diese Ger\u00e4te erstellt werden sollen.",
-                "data": {"containers": "Container", "stacks": "Stacks", "feature_use_action_buttons": "Aktionstasten erstellen"}
-            }
-        }
-    },
-    "services": {
-        "perform_container_action": {
-            "name": "Container-Aktion ausführen",
-            "description": "Führt eine angegebene Aktion (starten, stoppen, neu starten, beenden) für einen oder mehrere Container aus.",
-            "fields": {
-                "action": {
-                    "name": "Aktion",
-                    "description": "Die Aktion, die auf die Container angewendet werden soll."
-                },
-                "container_devices": {
-                    "name": "Container-Geräte",
-                    "description": "Eine Liste von Docker-Container-Geräten, auf die die Aktion angewendet werden soll."
+                "title": "Container und Stacks verwalten",
+                "description": "Wählen Sie die Container und Stacks aus, die Sie in Home Assistant überwachen möchten.",
+                "data": {
+                    "containers": "Container",
+                    "stacks": "Stacks"
+                }
+            },
+            "features": {
+                "title": "Funktionen konfigurieren",
+                "description": "Aktivieren oder deaktivieren Sie zusätzliche Funktionen für die Integration.",
+                "data": {
+                    "feature_switch_health_check": "Integritätsprüfungssensor aktivieren",
+                    "feature_switch_restart_policy": "Neustartrichtliniensensor aktivieren",
+                    "feature_use_action_buttons": "Aktionsschaltflächen für Container und Stacks erstellen"
                 }
             }
         },
-        "perform_stack_action": {
-            "name": "Stack-Aktion ausführen",
-            "description": "Führt eine angegebene Aktion (starten, stoppen) für einen oder mehrere Stacks aus.",
-            "fields": {
-                "action": {
-                    "name": "Aktion",
-                    "description": "Die Aktion, die auf die Stacks angewendet werden soll."
-                },
-                "stack_devices": {
-                    "name": "Stack-Geräte",
-                    "description": "Eine Liste von Portainer-Stack-Geräten, auf die die Aktion angewendet werden soll."
-                }
-            }
-        }
-    },
-    "issues": {
-        "missing_endpoint": {
-            "title": "Nicht verfügbarer Portainer-Endpunkt",
-            "description": "Der Endpunkt mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Endpunkt und löschen Sie ihn."
-        },
-        "missing_container": {
-            "title": "Nicht verfügbarer Portainer-Container",
-            "description": "Der Container {entity_name} mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Container und löschen Sie ihn."
-        },
-        "missing_stack": {
-            "title": "Nicht verfügbarer Portainer-Stack",
-            "description": "Der Stack mit der ID {entity_id} ist in Portainer nicht mehr verfügbar. Dies kann passieren, wenn er aus Ihrer Portainer-Instanz entfernt wurde. Sie sollten das entsprechende Gerät und seine Entitäten aus Home Assistant entfernen, um Fehler zu vermeiden.\n\nUm dies zu beheben, gehen Sie zur Geräteseite für diesen Stack und löschen Sie ihn."
+        "error": {
+            "endpoint_fetch_failed": "Endpunkte konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut."
         }
     },
     "repairs": {
-        "step": {
-            "confirm": {
-                "title": "Veraltetes Portainer-Gerät entfernen",
-                "description": "Das Gerät {device_name} ist in Portainer nicht mehr verfügbar. Möchten Sie dieses Gerät und alle zugehörigen Entitäten aus Home Assistant entfernen?"
-            }
+        "missing_container": {
+            "title": "Fehlender Portainer-Container erkannt",
+            "description": "Der Container mit dem Namen '{entity_name}' (ID: {entity_id}) wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
+            "confirm": "Ja, veraltetes Gerät entfernen"
         },
-        "invalid_issue_id": {
-            "title": "Ungültiges Problem",
-            "description": "Der Reparaturvorgang wurde mit einer ungültigen Issue-ID gestartet."
+        "missing_stack": {
+            "title": "Fehlender Portainer-Stack erkannt",
+            "description": "Der Stack mit der ID '{entity_id}' wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
+            "confirm": "Ja, veraltetes Gerät entfernen"
+        },
+        "missing_endpoint": {
+            "title": "Fehlender Portainer-Endpunkt erkannt",
+            "description": "Der Endpunkt mit der ID '{entity_id}' wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
+            "confirm": "Ja, veraltetes Gerät entfernen"
         }
     }
 }

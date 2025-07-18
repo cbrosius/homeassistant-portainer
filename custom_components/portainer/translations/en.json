@@ -2,91 +2,98 @@
     "config": {
         "step": {
             "user": {
-                "description": "Set up Portainer integration.",
+                "title": "Set up Portainer Integration",
+                "description": "Enter the connection details for your Portainer instance.",
                 "data": {
-                    "name": "Name of the Portainer-Instance",
-                    "host": "Host",
-                    "api_key": "API key",
+                    "name": "Name of the integration",
+                    "host": "Host (e.g., 192.168.0.2:9000)",
+                    "api_key": "Access token",
                     "ssl": "Use SSL",
                     "verify_ssl": "Verify SSL certificate"
                 }
             },
             "endpoints": {
                 "title": "Select Endpoints",
-                "description": "Select the endpoints you wish to monitor. Each endpoint represents a separate Portainer instance or environment.",
+                "description": "Choose the Portainer endpoints you want to import into Home Assistant.",
                 "data": {
                     "endpoints": "Endpoints"
+                }
+            },
+            "select_items": {
+                "title": "Select Items",
+                "description": "Choose the containers and stacks you want to import into Home Assistant.",
+                "data": {
+                    "containers": "Containers",
+                    "stacks": "Stacks"
+                }
+            },
+            "features": {
+                "title": "Configure Features",
+                "description": "Enable or disable additional features for the integration.",
+                "data": {
+                    "feature_switch_health_check": "Enable health check sensor",
+                    "feature_switch_restart_policy": "Enable restart policy sensor",
+                    "feature_use_action_buttons": "Create action buttons for containers and stacks"
                 }
             }
         },
         "error": {
-            "name_exists": "Name already exists.",
-            "no_response": "No response from host.",
-            "401": "No authorization for this endpoint.",
-            "404": "API not found on this host.",
-            "500": "Internal error."
+            "name_exists": "An integration with this name already exists.",
+            "cannot_connect": "Failed to connect. Please check the host and access token.",
+            "endpoint_fetch_failed": "Failed to fetch endpoints. Please check the connection and try again.",
+            "no_endpoints_found": "No endpoints found in the Portainer instance.",
+            "item_fetch_failed": "Failed to fetch containers/stacks. Please check the connection and try again."
+        },
+        "abort": {
+            "already_configured": "This Portainer instance is already configured."
         }
     },
     "options": {
         "step": {
             "init": {
-                "description": "Enable or disable custom features.",
+                "title": "Manage Portainer Endpoints",
+                "description": "Choose the Portainer endpoints you want to monitor in Home Assistant.",
                 "data": {
-                    "feature_switch_health_check": "Health check",
-                    "feature_switch_restart_policy": "Restart policy"
+                    "endpoints": "Endpoints"
                 }
             },
             "select_items": {
-                "title": "Select Containers and Stacks",
-                "description": "Select the containers and stacks you want to monitor. You can also choose whether to create action buttons for these devices.",
-                "data": {"containers": "Containers", "stacks": "Stacks", "feature_use_action_buttons": "Create Action Buttons"}
-            }
-        }
-    },
-    "services": {
-        "perform_container_action": {
-            "name": "Perform Container Action",
-            "description": "Performs a specified action (start, stop, restart, kill) on one or more containers.",
-            "fields": {
-                "action": {
-                    "name": "Action",
-                    "description": "The action to perform on the containers."
-                },
-                "container_devices": {
-                    "name": "Container Devices",
-                    "description": "A list of Docker container devices to perform the action on."
+                "title": "Manage Containers and Stacks",
+                "description": "Choose the containers and stacks you want to monitor in Home Assistant.",
+                "data": {
+                    "containers": "Containers",
+                    "stacks": "Stacks"
+                }
+            },
+            "features": {
+                "title": "Configure Features",
+                "description": "Enable or disable additional features for the integration.",
+                "data": {
+                    "feature_switch_health_check": "Enable health check sensor",
+                    "feature_switch_restart_policy": "Enable restart policy sensor",
+                    "feature_use_action_buttons": "Create action buttons for containers and stacks"
                 }
             }
         },
-        "perform_stack_action": {
-            "name": "Perform Stack Action",
-            "description": "Performs a specified action (start, stop) on one or more stacks.",
-            "fields": {
-                "action": {
-                    "name": "Action",
-                    "description": "The action to perform on the stacks."
-                },
-                "stack_devices": {
-                    "name": "Stack Devices",
-                    "description": "A list of Portainer stack devices to perform the action on."
-                }
-            }
-        }
-    },
-    "issues": {
-        "missing_endpoint": {
-            "title": "Unavailable Portainer Endpoint",
-            "description": "The endpoint with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this endpoint and delete it."
-        },
-        "missing_container": {
-            "title": "Unavailable Portainer Container",
-            "description": "The container {entity_name} with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this container and delete it."
-        },
-        "missing_stack": {
-            "title": "Unavailable Portainer Stack",
-            "description": "The stack with ID {entity_id} is no longer available in Portainer. This may happen if it has been removed from your Portainer instance. You should remove the corresponding device and its entities from Home Assistant to avoid errors.\n\nTo fix this, go to the device page for this stack and delete it."
+        "error": {
+            "endpoint_fetch_failed": "Failed to fetch endpoints. Please check the connection and try again."
         }
     },
     "repairs": {
+        "missing_container": {
+            "title": "Missing Portainer Container Detected",
+            "description": "The container named '{entity_name}' (ID: {entity_id}) was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
+            "confirm": "Yes, remove stale device"
+        },
+        "missing_stack": {
+            "title": "Missing Portainer Stack Detected",
+            "description": "The stack with ID '{entity_id}' was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
+            "confirm": "Yes, remove stale device"
+        },
+        "missing_endpoint": {
+            "title": "Missing Portainer Endpoint Detected",
+            "description": "The endpoint with ID '{entity_id}' was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
+            "confirm": "Yes, remove stale device"
+        }
     }
 }

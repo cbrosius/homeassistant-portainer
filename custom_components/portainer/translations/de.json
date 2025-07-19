@@ -78,11 +78,5 @@
         "error": {
             "endpoint_fetch_failed": "Endpunkte konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut."
         }
-    },
-    "repairs": {
-        "confirm": {
-            "title": "Veraltetes Portainer-Gerät entfernen",
-            "description": "Das Gerät {device_name} ist in Portainer nicht mehr verfügbar. Möchten Sie dieses Gerät und alle zugehörigen Entitäten aus Home Assistant entfernen?"
-        }
     }
 }

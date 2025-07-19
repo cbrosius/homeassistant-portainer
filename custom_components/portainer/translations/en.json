@@ -78,11 +78,5 @@
         "error": {
             "endpoint_fetch_failed": "Failed to fetch endpoints. Please check the connection and try again."
         }
-    },
-    "repairs": {
-        "confirm": {
-            "title": "Remove Stale Portainer Device",
-            "description": "The device {device_name} is no longer available in Portainer. Do you want to remove this device and all its associated entities from Home Assistant?"
-        }
     }
 }

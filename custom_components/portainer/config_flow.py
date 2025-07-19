@@ -200,13 +200,15 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             containers = []
             stacks = []
-            for endpoint_id in self.options["endpoints"]:
-                containers += await self.hass.async_add_executor_job(
-                    self.api.get_containers, endpoint_id
-                )
-                stacks += await self.hass.async_add_executor_job(
-                    self.api.get_stacks, endpoint_id
-                )
+            endpoints = await self.hass.async_add_executor_job(self.api.get_endpoints)
+            for endpoint in endpoints:
+                if str(endpoint["id"]) in self.options["endpoints"] and endpoint["status"] == 1:
+                    containers += await self.hass.async_add_executor_job(
+                        self.api.get_containers, endpoint["id"]
+                    )
+                    stacks += await self.hass.async_add_executor_job(
+                        self.api.get_stacks, endpoint["id"]
+                    )
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
             return self.async_abort(reason="item_fetch_failed")

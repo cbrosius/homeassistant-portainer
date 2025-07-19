@@ -181,8 +181,9 @@ class PortainerAPI(object):
                 or endpoint.get("name")
                 or f"Endpoint {endpoint_id}"
             )
+            endpoint_status = endpoint.get("Status")
             if endpoint_id:
-                endpoint_list.append({"id": str(endpoint_id), "name": endpoint_name})
+                endpoint_list.append({"id": str(endpoint_id), "name": endpoint_name, "status": endpoint_status})
         return endpoint_list
 
     # ---------------------------
@@ -218,7 +219,7 @@ class PortainerAPI(object):
     # ---------------------------
     def get_stacks(self, endpoint_id: str) -> list:
         """Get all stacks for a specific endpoint."""
-        stacks = self.query("stacks", params={"endpointId": endpoint_id})
+        stacks = self.query(f"endpoints/{endpoint_id}/stacks")
         if not stacks:
             _LOGGER.warning(f"No stacks found for endpoint {endpoint_id}.")
             return []

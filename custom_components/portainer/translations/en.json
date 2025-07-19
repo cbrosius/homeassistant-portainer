@@ -80,20 +80,9 @@
         }
     },
     "repairs": {
-        "missing_container": {
-            "title": "Missing Portainer Container Detected",
-            "description": "The container named '{entity_name}' (ID: {entity_id}) was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
-            "confirm": "Yes, remove stale device"
-        },
-        "missing_stack": {
-            "title": "Missing Portainer Stack Detected",
-            "description": "The stack with ID '{entity_id}' was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
-            "confirm": "Yes, remove stale device"
-        },
-        "missing_endpoint": {
-            "title": "Missing Portainer Endpoint Detected",
-            "description": "The endpoint with ID '{entity_id}' was not found in Portainer, but is still configured in Home Assistant. Do you want to remove this stale device from Home Assistant?",
-            "confirm": "Yes, remove stale device"
+        "confirm": {
+            "title": "Remove Stale Portainer Device",
+            "description": "The device {device_name} is no longer available in Portainer. Do you want to remove this device and all its associated entities from Home Assistant?"
         }
     }
 }

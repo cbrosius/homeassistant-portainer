@@ -80,20 +80,9 @@
         }
     },
     "repairs": {
-        "missing_container": {
-            "title": "Fehlender Portainer-Container erkannt",
-            "description": "Der Container mit dem Namen '{entity_name}' (ID: {entity_id}) wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
-            "confirm": "Ja, veraltetes Gerät entfernen"
-        },
-        "missing_stack": {
-            "title": "Fehlender Portainer-Stack erkannt",
-            "description": "Der Stack mit der ID '{entity_id}' wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
-            "confirm": "Ja, veraltetes Gerät entfernen"
-        },
-        "missing_endpoint": {
-            "title": "Fehlender Portainer-Endpunkt erkannt",
-            "description": "Der Endpunkt mit der ID '{entity_id}' wurde in Portainer nicht gefunden, ist aber immer noch in Home Assistant konfiguriert. Möchten Sie dieses veraltete Gerät aus Home Assistant entfernen?",
-            "confirm": "Ja, veraltetes Gerät entfernen"
+        "confirm": {
+            "title": "Veraltetes Portainer-Gerät entfernen",
+            "description": "Das Gerät {device_name} ist in Portainer nicht mehr verfügbar. Möchten Sie dieses Gerät und alle zugehörigen Entitäten aus Home Assistant entfernen?"
         }
     }
 }

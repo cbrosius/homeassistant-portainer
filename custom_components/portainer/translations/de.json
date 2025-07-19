@@ -42,6 +42,7 @@
             "cannot_connect": "Verbindung fehlgeschlagen. Überprüfen Sie Host und Zugriffstoken.",
             "endpoint_fetch_failed": "Endpunkte konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut.",
             "no_endpoints_found": "Keine Endpunkte in der Portainer-Instanz gefunden.",
+            "no_endpoints_selected": "Bitte wählen Sie mindestens einen Endpunkt aus.",
             "item_fetch_failed": "Container/Stacks konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut."
         },
         "abort": {

@@ -38,11 +38,9 @@
             }
         },
         "error": {
-            "name_exists": "An integration with this name already exists.",
-            "cannot_connect": "Failed to connect. Please check the host and access token.",
-            "endpoint_fetch_failed": "Failed to fetch endpoints. Please check the connection and try again.",
-            "no_endpoints_found": "No endpoints found in the Portainer instance.",
-            "item_fetch_failed": "Failed to fetch containers/stacks. Please check the connection and try again."
+            "name_exists": "An entry with this name already exists.",
+            "no_endpoints_found": "No endpoints found at this host.",
+            "no_endpoints_selected": "Please select at least one endpoint."
         },
         "abort": {
             "already_configured": "This Portainer instance is already configured."

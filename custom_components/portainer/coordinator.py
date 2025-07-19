@@ -245,7 +245,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             return
         # Only keep selected endpoints
         for eid in all_endpoints:
-            if not self.selected_endpoints or str(eid) in self.selected_endpoints:
+            if self.selected_endpoints and str(eid) in self.selected_endpoints:
                 self.raw_data["endpoints"][eid] = all_endpoints[eid]
         for eid in self.raw_data["endpoints"]:
             self.raw_data["endpoints"][eid] = parse_api(
@@ -319,8 +319,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
                     if (
-                        self.selected_containers
-                        and str(cid) not in self.selected_containers
+                        not self.selected_containers
+                        or str(cid) not in self.selected_containers
                     ):
                         del all_containers[cid]
                         continue
@@ -478,5 +478,5 @@ class PortainerCoordinator(DataUpdateCoordinator):
         )
         # Only keep selected stacks
         for sid in all_stacks:
-            if not self.selected_stacks or str(sid) in self.selected_stacks:
+            if self.selected_stacks and str(sid) in self.selected_stacks:
                 self.raw_data["stacks"][str(sid)] = all_stacks[sid]

@@ -147,9 +147,12 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
         """Step to select Portainer endpoints to import."""
         errors = {}
         if user_input is not None:
-            # Save selected endpoints and continue
-            self.options["endpoints"] = user_input["endpoints"]
-            return await self.async_step_select_items()
+            if not user_input.get("endpoints"):
+                errors["base"] = "no_endpoints_selected"
+            else:
+                # Save selected endpoints and continue
+                self.options["endpoints"] = user_input["endpoints"]
+                return await self.async_step_select_items()
 
         # Fetch endpoints from Portainer API
         try:

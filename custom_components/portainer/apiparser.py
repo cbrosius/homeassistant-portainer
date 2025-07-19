@@ -1,6 +1,6 @@
 """API parser for JSON APIs."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from logging import getLogger
 from pytz import utc
@@ -19,7 +19,7 @@ _LOGGER = getLogger(__name__)
 # ---------------------------
 def utc_from_timestamp(timestamp: float) -> datetime:
     """Return a UTC time from a timestamp."""
-    return utc.localize(datetime.utcfromtimestamp(timestamp))
+    return utc.localize(datetime.fromtimestamp(timestamp, tz=timezone.utc))
 
 
 # ---------------------------

@@ -430,13 +430,15 @@ class PortainerOptionsFlow(OptionsFlow):
                     "endpoints", self.config_entry.data.get("endpoints", [])
                 ),
             )
-            for endpoint_id in selected_endpoints:
-                containers += await self.hass.async_add_executor_job(
-                    api.get_containers, endpoint_id
-                )
-                stacks += await self.hass.async_add_executor_job(
-                    api.get_stacks, endpoint_id
-                )
+            endpoints = await self.hass.async_add_executor_job(api.get_endpoints)
+            for endpoint in endpoints:
+                if str(endpoint["id"]) in selected_endpoints and endpoint["status"] == 1:
+                    containers += await self.hass.async_add_executor_job(
+                        api.get_containers, endpoint["id"]
+                    )
+                    stacks += await self.hass.async_add_executor_job(
+                        api.get_stacks, endpoint["id"]
+                    )
             # Show status in container name
             container_options = {
                 str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers

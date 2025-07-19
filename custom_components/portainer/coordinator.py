@@ -150,7 +150,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     name=endpoint_data.get("Name", "Unknown"),
                     manufacturer="Portainer",
                     model="Endpoint",
-                    sw_version=endpoint_data.get("DockerVersion"),
+                    sw_version=endpoint_data.get("DockerVersion", "Unknown"),
                     configuration_url=self.api._url.rstrip("/api/"),
                 )
         except Exception as error:
@@ -239,10 +239,14 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 {"name": "Snapshots", "default": "unknown"},
                 {"name": "Type", "default": 0},
                 {"name": "Status", "default": 0},
+                {"name": "DockerVersion", "default": "Unknown"},  # Add DockerVersion here with default
             ],
         )
         if not all_endpoints:
             return
+        # Process all endpoints, not just selected ones, to ensure device creation
+        for eid, endpoint_data in all_endpoints.items():
+            self.raw_data["endpoints"][eid] = endpoint_data
         # Only keep selected endpoints
         for eid in all_endpoints:
             if self.selected_endpoints and str(eid) in self.selected_endpoints:

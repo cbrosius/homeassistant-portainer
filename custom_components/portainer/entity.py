@@ -47,13 +47,17 @@ async def async_create_sensors(
                 if (
                     description.func == "ContainerSensor"
                     and coordinator.selected_containers
+                    and str(uid) not in coordinator.selected_containers
                 ):
-                    if str(uid) not in coordinator.selected_containers:
-                        continue
+                    continue
+
                 # Only create stack entities for selected stacks
-                if description.func == "StackSensor" and coordinator.selected_stacks:
-                    if str(uid) not in coordinator.selected_stacks:
-                        continue
+                if (
+                    description.func == "StackSensor"
+                    and coordinator.selected_stacks
+                    and str(uid) not in coordinator.selected_stacks
+                ):
+                    continue
                 obj = dispatcher[description.func](coordinator, description, uid)
 
                 entities.append(obj)
@@ -132,11 +136,9 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         dev_connection = DOMAIN
         dev_connection_value = f"{self.coordinator.name}_{self.description.ha_group}"
         dev_group = self.description.ha_group
-        if self.description.ha_group.startswith("data__"):
-            dev_group = self.description.ha_group[6:]
-            if dev_group in self._data:
-                dev_group = self._data[dev_group]
-                dev_connection_value = dev_group
+        if self.description.ha_group.startswith("data__") and (dev_group := self.description.ha_group[6:]) in self._data:
+            dev_group = self._data[dev_group]
+            dev_connection_value = dev_group
 
         if self.description.ha_connection:
             dev_connection = self.description.ha_connection

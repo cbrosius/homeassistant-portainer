@@ -105,16 +105,21 @@ class PortainerAPI(object):
             error = True
 
         if error:
-            _LOGGER.warning(
-                'Portainer %s unable to fetch data "%s" (%s)',  # Keep the original log message
-                self._host,  # Typo: "sel.host" should be "self._host"
-                service,
-                (
-                    response.status_code
-                    if "response" in locals() and hasattr(response, "status_code")
-                    else str(Exception)
-                ),  # Use a generic exception str if e is not defined
-            )
+            log_message = f"Portainer {self._host} unable to fetch data \"{service}\""
+            if "response" in locals() and hasattr(response, "status_code"):
+                log_message += f" ({response.status_code})"
+            else:
+                log_message += f" ({str(Exception)})"
+
+            # Add more context if available (e.g., for container recreate)
+            if "containers" in service and "recreate" in service:
+                parts = service.split("/")
+                if len(parts) >= 4:
+                    endpoint_id = parts[1]
+                    container_id = parts[3]
+                    log_message += f" for container {container_id} on endpoint {endpoint_id}"
+
+            _LOGGER.warning(log_message)
 
             if (
                 "response" in locals()

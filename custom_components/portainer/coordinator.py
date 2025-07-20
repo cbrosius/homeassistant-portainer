@@ -245,39 +245,42 @@ class PortainerCoordinator(DataUpdateCoordinator):
         if not all_endpoints:
             return
         # Process all endpoints, not just selected ones, to ensure device creation
+        # Process all endpoints, not just selected ones, to ensure device creation
+        temp_endpoints = {}
         for eid, endpoint_data in all_endpoints.items():
-            self.raw_data["endpoints"][eid] = endpoint_data
-        # Only keep selected endpoints
-        for eid in all_endpoints:
             if self.selected_endpoints and str(eid) in self.selected_endpoints:
-                self.raw_data["endpoints"][eid] = all_endpoints[eid]
+                temp_endpoints[eid] = endpoint_data
+
+        self.raw_data["endpoints"] = temp_endpoints
         for eid in self.raw_data["endpoints"]:
-            self.raw_data["endpoints"][eid] = parse_api(
-                data=self.raw_data["endpoints"][eid],
-                source=self.raw_data["endpoints"][eid]["Snapshots"][0],
-                vals=[
-                    {"name": "DockerVersion", "default": "unknown"},
-                    {"name": "Swarm", "default": False},
-                    {"name": "TotalCPU", "default": 0},
-                    {"name": "TotalMemory", "default": 0},
-                    {"name": "RunningContainerCount", "default": 0},
-                    {"name": "StoppedContainerCount", "default": 0},
-                    {"name": "HealthyContainerCount", "default": 0},
-                    {"name": "UnhealthyContainerCount", "default": 0},
-                    {"name": "VolumeCount", "default": 0},
-                    {"name": "ImageCount", "default": 0},
-                    {"name": "ServiceCount", "default": 0},
-                    {"name": "StackCount", "default": 0},
-                    {"name": "ConfigEntryId", "default": self.config_entry_id},
-                ],
-            )
-            del self.raw_data["endpoints"][eid]["Snapshots"]
+            if self.raw_data["endpoints"][eid]["Status"] == 1:
+                self.raw_data["endpoints"][eid] = parse_api(
+                    data=self.raw_data["endpoints"][eid],
+                    source=self.raw_data["endpoints"][eid]["Snapshots"][0],
+                    vals=[
+                        {"name": "DockerVersion", "default": "unknown"},
+                        {"name": "Swarm", "default": False},
+                        {"name": "TotalCPU", "default": 0},
+                        {"name": "TotalMemory", "default": 0},
+                        {"name": "RunningContainerCount", "default": 0},
+                        {"name": "StoppedContainerCount", "default": 0},
+                        {"name": "HealthyContainerCount", "default": 0},
+                        {"name": "UnhealthyContainerCount", "default": 0},
+                        {"name": "VolumeCount", "default": 0},
+                        {"name": "ImageCount", "default": 0},
+                        {"name": "ServiceCount", "default": 0},
+                        {"name": "StackCount", "default": 0},
+                        {"name": "ConfigEntryId", "default": self.config_entry_id},
+                    ],
+                )
+                del self.raw_data["endpoints"][eid]["Snapshots"]
 
     # ---------------------------
     #   get_containers
     # ---------------------------
     def get_containers(self) -> None:
         self.raw_data["containers"] = {}
+        all_containers = {}
         for eid in self.raw_data["endpoints"]:
             if self.raw_data["endpoints"][eid]["Status"] == 1:
                 self.raw_data["containers"][eid] = {}

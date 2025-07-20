@@ -136,7 +136,10 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         dev_connection = DOMAIN
         dev_connection_value = f"{self.coordinator.name}_{self.description.ha_group}"
         dev_group = self.description.ha_group
-        if self.description.ha_group.startswith("data__") and (dev_group := self.description.ha_group[6:]) in self._data:
+        if (
+            self.description.ha_group.startswith("data__")
+            and (dev_group := self.description.ha_group[6:]) in self._data
+        ):
             dev_group = self._data[dev_group]
             dev_connection_value = dev_group
 

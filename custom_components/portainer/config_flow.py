@@ -202,7 +202,10 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             stacks = []
             endpoints = await self.hass.async_add_executor_job(self.api.get_endpoints)
             for endpoint in endpoints:
-                if str(endpoint["id"]) in self.options["endpoints"] and endpoint["status"] == 1:
+                if (
+                    str(endpoint["id"]) in self.options["endpoints"]
+                    and endpoint["status"] == 1
+                ):
                     containers += await self.hass.async_add_executor_job(
                         self.api.get_containers, endpoint["id"]
                     )
@@ -432,7 +435,10 @@ class PortainerOptionsFlow(OptionsFlow):
             )
             endpoints = await self.hass.async_add_executor_job(api.get_endpoints)
             for endpoint in endpoints:
-                if str(endpoint["id"]) in selected_endpoints and endpoint["status"] == 1:
+                if (
+                    str(endpoint["id"]) in selected_endpoints
+                    and endpoint["status"] == 1
+                ):
                     containers += await self.hass.async_add_executor_job(
                         api.get_containers, endpoint["id"]
                     )

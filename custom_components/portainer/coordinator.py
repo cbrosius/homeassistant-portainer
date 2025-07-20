@@ -239,7 +239,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 {"name": "Snapshots", "default": "unknown"},
                 {"name": "Type", "default": 0},
                 {"name": "Status", "default": 0},
-                {"name": "DockerVersion", "default": "Unknown"},  # Add DockerVersion here with default
+                {
+                    "name": "DockerVersion",
+                    "default": "Unknown",
+                },  # Add DockerVersion here with default
             ],
         )
         if not all_endpoints:

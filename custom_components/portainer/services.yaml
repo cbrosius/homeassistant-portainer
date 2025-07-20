@@ -63,3 +63,10 @@ recreate_container:
           filter:
             integration: portainer
             model: Container
+    pull_image:
+      name: Pull Image
+      description: Whether to pull the latest image before recreating the container.
+      required: false
+      default: true
+      selector:
+        boolean: {}

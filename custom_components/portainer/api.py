@@ -76,14 +76,13 @@ class PortainerAPI(object):
             #     params,
             # )
 
+            url = f"{self._url}{service}"
             if method == "GET":
-                response = self._session.get(
-                    f"{self._url}{service}", params=params, timeout=10
-                )
+                _LOGGER.debug("Portainer API call (GET): %s, params=%s", url, params)
+                response = self._session.get(url, params=params, timeout=10)
             elif method == "POST":
-                response = self._session.post(
-                    f"{self._url}{service}", json=params, timeout=10
-                )
+                _LOGGER.debug("Portainer API call (POST): %s, json=%s", url, params)
+                response = self._session.post(url, json=params, timeout=10)
             elif method == "PUT":
                 response = self._session.put(
                     f"{self._url}{service}", json=params, timeout=10
@@ -252,12 +251,14 @@ class PortainerAPI(object):
     # ---------------------------
     #   recreate_container
     # ---------------------------
-    def recreate_container(self, endpoint_id: str, container_id: str) -> None:
+    def recreate_container(self, endpoint_id: str, container_id: str, pull_image: bool = True) -> None:
         """Recreate a container."""
         _LOGGER.debug("Calling Portainer API to recreate container %s on endpoint %s", container_id, endpoint_id)
+        params = {"pullImage": pull_image} if pull_image else {}
         self.query(
             f"endpoints/{endpoint_id}/docker/containers/{container_id}/recreate",
             "POST",
-            params={"pullImage": True},
+            params=params,
+
         )
         _LOGGER.debug("Portainer API call for recreate container completed.")

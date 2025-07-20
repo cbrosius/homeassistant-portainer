@@ -56,6 +56,7 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
         coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
+        pull_image = call.data.get("pull_image", True)  # Default to True if not provided
         if not coordinator:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
@@ -69,12 +70,13 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
                     coordinator.name,
                 )
             except Exception as e:
-                _LOGGER.error(
+                 _LOGGER.error(
                     "Failed to recreate container '%s' on instance '%s': %s",
                     container_id,
                     coordinator.name,
                     e,
                 )
+
 
         await coordinator.async_request_refresh()
 
@@ -269,6 +271,7 @@ async def async_register_services(hass: HomeAssistant) -> None:
                 vol.Required(ATTR_CONTAINER_DEVICES): vol.All(
                     [str], vol.Length(min=1)
                 ),
+                vol.Optional("pull_image", default=True): bool,
             }
         ),
     )

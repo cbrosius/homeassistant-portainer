@@ -494,7 +494,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
     # ---------------------------
     #   async_recreate_container
     # ---------------------------
-    async def async_recreate_container(self, container_id: str, pull_image: bool = True) -> None:
+    async def async_recreate_container(
+        self, container_id: str, pull_image: bool = True
+    ) -> None:
         """Recreate a container after retrieving its details."""
         _LOGGER.debug("Attempting to recreate container: %s", container_id)
         container = self.get_specific_container(container_id)
@@ -503,7 +505,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
             return
 
         endpoint_id = container["EndpointId"]
-        _LOGGER.debug("Found container %s on endpoint %s. Calling API.", container_id, endpoint_id)
+        _LOGGER.debug(
+            "Found container %s on endpoint %s. Calling API.", container_id, endpoint_id
+        )
         await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image
         )

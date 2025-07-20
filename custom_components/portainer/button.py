@@ -236,6 +236,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
             "sw_version": self.sw_version,
             "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
+            "container_id": container_id,  # Add the container_id here
         }
 
 

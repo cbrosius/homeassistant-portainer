@@ -104,7 +104,7 @@ class PortainerAPI(object):
             error = True
 
         if error:
-            log_message = f"Portainer {self._host} unable to fetch data \"{service}\""
+            log_message = f'Portainer {self._host} unable to fetch data "{service}"'
             if "response" in locals() and hasattr(response, "status_code"):
                 log_message += f" ({response.status_code})"
             else:
@@ -116,7 +116,9 @@ class PortainerAPI(object):
                 if len(parts) >= 4:
                     endpoint_id = parts[1]
                     container_id = parts[3]
-                    log_message += f" for container {container_id} on endpoint {endpoint_id}"
+                    log_message += (
+                        f" for container {container_id} on endpoint {endpoint_id}"
+                    )
 
             _LOGGER.warning(log_message)
 
@@ -251,14 +253,19 @@ class PortainerAPI(object):
     # ---------------------------
     #   recreate_container
     # ---------------------------
-    def recreate_container(self, endpoint_id: str, container_id: str, pull_image: bool = True) -> None:
+    def recreate_container(
+        self, endpoint_id: str, container_id: str, pull_image: bool = True
+    ) -> None:
         """Recreate a container."""
-        _LOGGER.debug("Calling Portainer API to recreate container %s on endpoint %s", container_id, endpoint_id)
+        _LOGGER.debug(
+            "Calling Portainer API to recreate container %s on endpoint %s",
+            container_id,
+            endpoint_id,
+        )
         params = {"pullImage": pull_image} if pull_image else {}
         self.query(
             f"endpoints/{endpoint_id}/docker/containers/{container_id}/recreate",
             "POST",
             params=params,
-
         )
         _LOGGER.debug("Portainer API call for recreate container completed.")

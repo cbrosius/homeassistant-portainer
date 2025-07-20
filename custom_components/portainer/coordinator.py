@@ -490,3 +490,20 @@ class PortainerCoordinator(DataUpdateCoordinator):
         for sid in all_stacks:
             if self.selected_stacks and str(sid) in self.selected_stacks:
                 self.raw_data["stacks"][str(sid)] = all_stacks[sid]
+
+    # ---------------------------
+    #   async_recreate_container
+    # ---------------------------
+    async def async_recreate_container(self, container_id: str) -> None:
+        """Recreate a container."""
+        _LOGGER.debug("Attempting to recreate container: %s", container_id)
+        container = get_specific_container(self.data["containers"], container_id)
+        if not container:
+            _LOGGER.error("Container %s not found in coordinator data.", container_id)
+            return
+        
+        endpoint_id = container["EndpointId"]
+        _LOGGER.debug("Found container %s on endpoint %s. Calling API.", container_id, endpoint_id)
+        await self.hass.async_add_executor_job(
+            self.api.recreate_container, endpoint_id, container_id
+        )

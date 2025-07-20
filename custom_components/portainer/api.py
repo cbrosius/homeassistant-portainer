@@ -243,3 +243,16 @@ class PortainerAPI(object):
             if stack_id:
                 stack_list.append({"id": str(stack_id), "name": stack_name})
         return stack_list
+
+    # ---------------------------
+    #   recreate_container
+    # ---------------------------
+    def recreate_container(self, endpoint_id: str, container_id: str) -> None:
+        """Recreate a container."""
+        _LOGGER.debug("Calling Portainer API to recreate container %s on endpoint %s", container_id, endpoint_id)
+        self.query(
+            f"endpoints/{endpoint_id}/docker/containers/{container_id}/recreate",
+            "POST",
+            params={"pullImage": True},
+        )
+        _LOGGER.debug("Portainer API call for recreate container completed.")

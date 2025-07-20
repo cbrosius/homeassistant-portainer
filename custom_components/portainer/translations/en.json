@@ -76,5 +76,17 @@
         "error": {
             "endpoint_fetch_failed": "Failed to fetch endpoints. Please check the connection and try again."
         }
+    },
+    "services": {
+        "recreate_container": {
+            "name": "Recreate Container",
+            "description": "Recreates a container, pulling the latest image.",
+            "fields": {
+                "container_devices": {
+                    "name": "Container Devices",
+                    "description": "A list of Docker container devices to recreate."
+                }
+            }
+        }
     }
 }

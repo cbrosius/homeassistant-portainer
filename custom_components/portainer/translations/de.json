@@ -79,5 +79,17 @@
         "error": {
             "endpoint_fetch_failed": "Endpunkte konnten nicht abgerufen werden. Überprüfen Sie die Verbindung und versuchen Sie es erneut."
         }
+    },
+    "services": {
+        "recreate_container": {
+            "name": "Container neu erstellen",
+            "description": "Erstellt einen Container neu und zieht das neueste Image.",
+            "fields": {
+                "container_devices": {
+                    "name": "Container-Geräte",
+                    "description": "Eine Liste von Docker-Container-Geräten, die neu erstellt werden sollen."
+                }
+            }
+        }
     }
 }

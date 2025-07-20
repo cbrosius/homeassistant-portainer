@@ -3,19 +3,12 @@
 from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import PortainerCoordinator
 
 _LOGGER = getLogger(__name__)
-
-SERVICE_PERFORM_CONTAINER_ACTION = "perform_container_action"
-ATTR_ACTION = "action"
-ATTR_CONTAINER_DEVICES = "container_devices"
-SERVICE_PERFORM_STACK_ACTION = "perform_stack_action"
-ATTR_STACK_DEVICES = "stack_devices"
-
 # Store a set of registered domains to ensure services are registered only once
 _REGISTERED_DOMAINS = set()
 

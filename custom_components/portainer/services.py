@@ -16,9 +16,67 @@ _LOGGER = logging.getLogger(__name__)
 
 SERVICE_PERFORM_CONTAINER_ACTION = "perform_container_action"
 SERVICE_PERFORM_STACK_ACTION = "perform_stack_action"
+SERVICE_RECREATE_CONTAINER = "recreate_container"
 ATTR_ACTION = "action"
 ATTR_CONTAINER_DEVICES = "container_devices"
 ATTR_STACK_DEVICES = "stack_devices"
+
+
+async def _handle_recreate_container(call: ServiceCall) -> None:
+    """Handle the service call to recreate a container."""
+    hass = call.hass
+    container_device_ids = call.data.get(ATTR_CONTAINER_DEVICES)
+
+    if not container_device_ids:
+        _LOGGER.warning("No container devices provided for recreate action")
+        return
+
+    device_reg = dr.async_get(hass)
+
+    devices_by_config_entry: dict[str, list[str]] = {}
+    for device_id in container_device_ids:
+        device_entry = device_reg.async_get(device_id)
+        if (
+            not device_entry
+            or not device_entry.identifiers
+            or not device_entry.config_entries
+        ):
+            _LOGGER.warning(
+                "Device '%s' not found or not associated with a config entry. Skipping.",
+                device_id,
+            )
+            continue
+
+        config_entry_id = next(iter(device_entry.config_entries))
+        if config_entry_id not in devices_by_config_entry:
+            devices_by_config_entry[config_entry_id] = []
+
+        docker_container_id = next(iter(device_entry.identifiers))[1]
+        devices_by_config_entry[config_entry_id].append(docker_container_id)
+
+    for config_entry_id, docker_container_ids in devices_by_config_entry.items():
+        coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
+        if not coordinator:
+            _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
+            continue
+
+        for container_id in docker_container_ids:
+            try:
+                await coordinator.async_recreate_container(container_id)
+                _LOGGER.info(
+                    "Successfully recreated container '%s' on instance '%s'",
+                    container_id,
+                    coordinator.name,
+                )
+            except Exception as e:
+                _LOGGER.error(
+                    "Failed to recreate container '%s' on instance '%s': %s",
+                    container_id,
+                    coordinator.name,
+                    e,
+                )
+
+        await coordinator.async_request_refresh()
 
 
 async def _handle_perform_container_action(call: ServiceCall) -> None:
@@ -202,8 +260,22 @@ async def async_register_services(hass: HomeAssistant) -> None:
         ),
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RECREATE_CONTAINER,
+        _handle_recreate_container,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_CONTAINER_DEVICES): vol.All(
+                    [str], vol.Length(min=1)
+                ),
+            }
+        ),
+    )
+
 
 async def async_unregister_services(hass: HomeAssistant) -> None:
     """Unregister the Portainer services."""
     hass.services.async_remove(DOMAIN, SERVICE_PERFORM_CONTAINER_ACTION)
     hass.services.async_remove(DOMAIN, SERVICE_PERFORM_STACK_ACTION)
+    hass.services.async_remove(DOMAIN, SERVICE_RECREATE_CONTAINER)

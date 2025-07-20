@@ -283,7 +283,7 @@ class ContainerSensor(PortainerSensor):
         if name.startswith("/"):
             name = name[1:]
         return {
-            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},  # Combined identifier
+            "identifiers": {(DOMAIN, container_id)},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",

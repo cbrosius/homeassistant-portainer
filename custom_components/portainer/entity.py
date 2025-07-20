@@ -90,15 +90,16 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         self._data = coordinator.data[self.description.data_path]
         if self._uid:
             self._data = coordinator.data[self.description.data_path][self._uid]
-            # Container/Stack: Construct unique_id from endpoint_id and name
-            # Other entities: Use existing logic with description key and config entry id
-            identifier_parts = [DOMAIN, self.description.key]
-            if self.description.data_reference == "Id":  # Container/Stack
-                identifier_parts.insert(1, self._data.get("EndpointId", "unknown"))
-                identifier_parts.insert(2, slugify(self._data.get(self.description.data_name, "unknown")))
-            else:  # Other entity types
-                identifier_parts.append(slugify(self.get_config_entry_id()).lower())
-            self._attr_unique_id = "-".join(identifier_parts)
+            # Use Portainer's Id directly for unique_id if available
+            portainer_id = self._data.get("Id")
+            if portainer_id:
+                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
+            else:
+                # fallback: just use config entry id and description key
+                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
+        else:
+            # build _attr_unique_id (no _uid)
+            self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
 
     @callback
     def _handle_coordinator_update(self) -> None:

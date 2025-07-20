@@ -51,7 +51,7 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
         if config_entry_id not in devices_by_config_entry:
             devices_by_config_entry[config_entry_id] = []
 
-        endpoint_container_identifier = next(iter(device_entry.identifiers))[1]
+        docker_container_id = next(iter(device_entry.identifiers))[1]
         devices_by_config_entry[config_entry_id].append(docker_container_id)
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
@@ -111,7 +111,7 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         if config_entry_id not in devices_by_config_entry:
             devices_by_config_entry[config_entry_id] = []
 
-        endpoint_container_identifier = next(iter(device_entry.identifiers))[1]
+        docker_container_id = next(iter(device_entry.identifiers))[1]
         devices_by_config_entry[config_entry_id].append(docker_container_id)
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():

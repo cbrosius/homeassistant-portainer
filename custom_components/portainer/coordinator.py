@@ -495,15 +495,22 @@ class PortainerCoordinator(DataUpdateCoordinator):
     #   async_recreate_container
     # ---------------------------
     async def async_recreate_container(self, container_id: str, pull_image: bool = True) -> None:
-        """Recreate a container by container ID."""
-        _LOGGER.debug("Attempting to recreate container by ID: %s", container_id)
-
-        container = next((c for c in self.data["containers"].values() if c["Id"] == container_id), None)
+        """Recreate a container after retrieving its details."""
+        _LOGGER.debug("Attempting to recreate container: %s", container_id)
+        container = self.get_specific_container(container_id)
         if not container:
-            _LOGGER.error(f"Container with ID '{container_id}' not found.")
+            _LOGGER.error("Container %s not found in coordinator data.", container_id)
             return
 
-        endpoint_id = container["EndpointId"]  # Retrieve endpoint_id from container data
+        endpoint_id = container["EndpointId"]
+        _LOGGER.debug("Found container %s on endpoint %s. Calling API.", container_id, endpoint_id)
         await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image
         )
+
+    def get_specific_container(self, container_id: str) -> dict | None:
+        """Retrieve details for a specific container by its ID."""
+        for container in self.data["containers"].values():
+            if container.get("Id") == container_id:
+                return container
+        return None

@@ -163,7 +163,11 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             endpoints = []
 
         endpoint_options = {str(ep["id"]): ep["name"] for ep in endpoints}
-        if not endpoint_options:
+        # Filter out endpoints with status other than 1 (OK)
+        available_endpoint_options = {
+            str(ep["id"]): ep["name"] for ep in endpoints if ep["status"] == 1
+        }
+        if not available_endpoint_options:
             errors["base"] = "no_endpoints_found"
             return self.async_show_form(
                 step_id="endpoints",
@@ -176,7 +180,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required("endpoints", default=[]): cv.multi_select(
-                        endpoint_options
+                        available_endpoint_options
                     )
                 }
             ),
@@ -217,16 +221,23 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="item_fetch_failed")
 
         # Show status in container name
-        container_options = {
-            str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
-        }
-        stack_options = {str(s["id"]): s["name"] for s in stacks}
+        container_options = {}
+        for container in containers:
+            container_id = container["id"]
+            container_name = container["name"]
+            endpoint_id = container.get("endpoint_id", "unknown")  # Assuming this is added in api.py
+            display_name = f"{container_name} (Endpoint: {endpoint_id}) [{container['status']}]"
+            container_options[f"{endpoint_id}_{container_name}"] = display_name
+
+        stack_options = {}
+        for stack in stacks:
+            stack_id = stack["id"]
+            endpoint_id = stack.get("endpoint_id", "unknown")  # Assuming this is added in api.py
+            stack_options[f"{endpoint_id}_{stack_id}"] = f"{stack['name']} (Endpoint: {endpoint_id})"
 
         schema_dict = {}
         if container_options:
-            schema_dict[vol.Optional("containers", default=[])] = cv.multi_select(
-                container_options
-            )
+            schema_dict[vol.Optional("containers", default=[])] = cv.multi_select(container_options)
         if stack_options:
             schema_dict[vol.Optional("stacks", default=[])] = cv.multi_select(
                 stack_options
@@ -349,44 +360,60 @@ class PortainerOptionsFlow(OptionsFlow):
                 errors={"base": "endpoint_fetch_failed"},
             )
 
-    async def async_step_select_items(self, user_input=None):
+    async def async_step_select_items(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Step to select containers and stacks for selected endpoints."""
         if user_input is not None:
-            # Get current selections
-            current_containers = set(self.config_entry.options.get("containers", []))
-            current_stacks = set(self.config_entry.options.get("stacks", []))
+            selected_containers = user_input.get("containers", [])
+            selected_stacks = user_input.get("stacks", [])
 
-            # Get new selections
-            new_containers = set(user_input.get("containers", []))
-            new_stacks = set(user_input.get("stacks", []))
-
-            # Determine which devices to remove
-            removed_containers = current_containers - new_containers
-            removed_stacks = current_stacks - new_stacks
-
-            # Remove devices from the registry
+            # Identify and remove devices not in the new selection
             device_registry = dr.async_get(self.hass)
+            entity_registry = er.async_get(self.hass)  # Get the entity registry
+            current_devices = dr.async_entries_for_config_entry(device_registry, self.config_entry.entry_id)
 
-            def _remove_device(device, device_ids, device_type_str):
-                """Helper to remove a device if its ID is in the list."""
+            for device in current_devices:
                 for identifier in device.identifiers:
                     if identifier[0] == DOMAIN:
-                        device_type, device_id = identifier
-                        if (
-                            device_type == DOMAIN
-                            and device.model == device_type_str
-                            and any(
-                                removed_id in device_id for removed_id in device_ids
-                            )
-                        ):
-                            device_registry.async_remove_device(device.id)
-                            _LOGGER.debug(
-                                f"Removed {device_type_str.lower()} device: {device.id}"
-                            )
-                            return True  # Indicate that the device was removed
-                return False
+                        device_identifier = identifier[1]
 
-            entity_registry = er.async_get(self.hass)  # Get the entity registry
+                        # Handle Container Devices
+                        if device.model == "Container" and device_identifier not in selected_containers:
+                            _LOGGER.debug(f"Removing container device: {device.name} ({device_identifier})")
+                            # Remove entities associated with the device
+                            entities_to_remove = er.async_entries_for_device(
+                                entity_registry, device.id, include_disabled_entities=True
+                            )
+                            for entity in entities_to_remove:
+                                entity_registry.async_remove(entity.entity_id)
+                            # Finally, remove the device
+                            device_registry.async_remove_device(device.id)
+
+                        # Handle Stack Devices
+                        elif device.model == "Stack":
+                            # For stacks, we need to extract the endpoint_id and stack_id from the identifier
+                            if "_" in device_identifier:
+                                endpoint_id, stack_id = device_identifier.split("_", 1)
+                                combined_identifier = f"{endpoint_id}_{stack_id}"
+                            else:
+                                combined_identifier = device_identifier
+
+                            if combined_identifier not in selected_stacks:
+                                _LOGGER.debug(f"Removing stack device: {device.name} ({device_identifier})")
+                                # Remove entities associated with the device
+                                entities_to_remove = er.async_entries_for_device(
+                                    entity_registry, device.id, include_disabled_entities=True
+                                )
+                                for entity in entities_to_remove:
+                                    entity_registry.async_remove(entity.entity_id)
+                                # Finally, remove the device
+                                device_registry.async_remove_device(device.id)
+
+            # Update options with new selections
+            self.options["containers"] = selected_containers
+            self.options["stacks"] = selected_stacks
+            self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(CONF_FEATURE_USE_ACTION_BUTTONS, True)
+
+            return await self.async_step_features()
 
             # Iterate and remove container devices
             for device in dr.async_entries_for_config_entry(
@@ -408,7 +435,7 @@ class PortainerOptionsFlow(OptionsFlow):
                     ):
                         entity_registry.async_remove(entity.entity_id)
 
-            self.options["containers"] = user_input.get("containers", [])
+            self.options["containers"] = user_input.get("containers", )
             self.options["stacks"] = user_input.get("stacks", [])
             self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(
                 CONF_FEATURE_USE_ACTION_BUTTONS, True
@@ -445,30 +472,33 @@ class PortainerOptionsFlow(OptionsFlow):
                     stacks += await self.hass.async_add_executor_job(
                         api.get_stacks, endpoint["id"]
                     )
-            # Show status in container name
-            container_options = {
-                str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
-            }
-            stack_options = {str(s["id"]): s["name"] for s in stacks}
+        except Exception as exc:
+            _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
+            return self.async_abort(reason="item_fetch_failed")
 
-            valid_container_ids = set(container_options.keys())
-            valid_stack_ids = set(stack_options.keys())
+        # Prepare container options with endpoint info and status
+        container_options = {}
+        for container in containers:
+            container_id = container["id"]
+            container_name = container["name"]
+            endpoint_id = container.get("endpoint_id", "unknown")  # Assuming this is added in api.py
+            display_name = f"{container_name} (Endpoint: {endpoint_id}) [{container['status']}]"
+            container_options[f"{endpoint_id}_{container_name}"] = display_name
 
-            current_containers = [
-                cid
-                for cid in self.config_entry.options.get(
-                    "containers", self.config_entry.data.get("containers", [])
-                )
-                if cid in valid_container_ids
-            ]
-            current_stacks = [
-                sid
-                for sid in self.config_entry.options.get(
-                    "stacks", self.config_entry.data.get("stacks", [])
-                )
-                if sid in valid_stack_ids
-            ]
+        # Prepare stack options with endpoint info
+        stack_options = {}
+        for stack in stacks:
+            stack_id = stack["id"]
+            endpoint_id = stack.get("endpoint_id", "unknown")  # Assuming this is added in api.py
+            stack_options[f"{endpoint_id}_{stack_id}"] = f"{stack['name']} (Endpoint: {endpoint_id})"
 
+        # Get current selections ensuring they exist in the fetched options
+        current_containers = [c for c in self.config_entry.options.get("containers", []) if c in container_options]
+        current_stacks = [s for s in self.config_entry.options.get("stacks", []) if s in stack_options]
+
+        # Build schema dictionary
+        schema_dict = {}
+        if container_options:
             schema_dict = {
                 vol.Optional("containers", default=current_containers): cv.multi_select(
                     container_options
@@ -483,7 +513,7 @@ class PortainerOptionsFlow(OptionsFlow):
                 description_placeholders={
                     "containers": ", ".join(container_options.values()),
                     "stacks": ", ".join(stack_options.values()),
-                },
+                }
             )
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)

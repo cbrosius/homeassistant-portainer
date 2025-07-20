@@ -229,7 +229,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
         if name.startswith("/"):
             name = name[1:]
         return {
-            "identifiers": {(DOMAIN, container_id)},
+            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},  # Combined identifier
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",

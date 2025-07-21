@@ -51,8 +51,8 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
         if config_entry_id not in devices_by_config_entry:
             devices_by_config_entry[config_entry_id] = []
 
-        docker_container_id = next(iter(device_entry.identifiers))[1]
-        devices_by_config_entry[config_entry_id].append(docker_container_id)
+        identifier = next(iter(device_entry.identifiers))[1]
+        devices_by_config_entry[config_entry_id].append(identifier)
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
         coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
@@ -63,18 +63,21 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
 
-        for container_id in docker_container_ids:
+        for identifier in docker_container_ids:
             try:
-                await coordinator.async_recreate_container(container_id)
+                endpoint_id, container_name = identifier.split("_", 1)
+                await coordinator.async_recreate_container(
+                    endpoint_id, container_name, pull_image
+                )
                 _LOGGER.info(
                     "Successfully recreated container '%s' on instance '%s'",
-                    container_id,
+                    container_name,
                     coordinator.name,
                 )
             except Exception as e:
                 _LOGGER.error(
                     "Failed to recreate container '%s' on instance '%s': %s",
-                    container_id,
+                    identifier,
                     coordinator.name,
                     e,
                 )
@@ -112,8 +115,8 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         if config_entry_id not in devices_by_config_entry:
             devices_by_config_entry[config_entry_id] = []
 
-        docker_container_id = next(iter(device_entry.identifiers))[1]
-        devices_by_config_entry[config_entry_id].append(docker_container_id)
+        identifier = next(iter(device_entry.identifiers))[1]
+        devices_by_config_entry[config_entry_id].append(identifier)
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
         coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
@@ -121,39 +124,36 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
 
-        container_lookup = {
-            container_data.get("Id"): container_data.get("EndpointId")
-            for container_data in coordinator.data.get("containers", {}).values()
-        }
-
-        for container_id in docker_container_ids:
-            endpoint_id = container_lookup.get(container_id)
-            if not endpoint_id:
-                _LOGGER.warning(
-                    "Container ID '%s' not found in Portainer data for instance '%s'. Skipping.",
-                    container_id,
-                    coordinator.name,
-                )
-                continue
-
-            service_path = (
-                f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
-            )
+        for identifier in docker_container_ids:
             try:
+                endpoint_id, container_name = identifier.split("_", 1)
+                container = coordinator.get_specific_container(
+                    endpoint_id, container_name
+                )
+                if not container:
+                    _LOGGER.warning(
+                        "Container ID '%s' not found in Portainer data for instance '%s'. Skipping.",
+                        identifier,
+                        coordinator.name,
+                    )
+                    continue
+
+                container_id = container.get("Id")
+                service_path = f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
                 await hass.async_add_executor_job(
                     coordinator.api.query, service_path, "POST", {}
                 )
                 _LOGGER.info(
                     "Successfully performed '%s' on container '%s' on instance '%s'",
                     action,
-                    container_id,
+                    container_name,
                     coordinator.name,
                 )
             except Exception as e:
                 _LOGGER.error(
                     "Failed to perform '%s' on container '%s' on instance '%s': %s",
                     action,
-                    container_id,
+                    identifier,
                     coordinator.name,
                     e,
                 )

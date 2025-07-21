@@ -50,6 +50,7 @@ def _get_sensor_descriptions(
         "container_network_mode",
         "container_exit_code",
         "container_privileged_mode",
+        "container_id",
     ]
     for key in default_feature_keys:
         descriptions.extend([d for d in SENSOR_TYPES_FEATURES if d.key == key])
@@ -277,13 +278,13 @@ class ContainerSensor(PortainerSensor):
     @property
     def device_info(self):
         """Return device information for this container."""
-        container_id = self._data.get("Id")
         endpoint_id = self._data.get("EndpointId")
         name = self._data.get("Names", [self._data.get("Name", "Unknown")])[0]
         if name.startswith("/"):
             name = name[1:]
+
         return {
-            "identifiers": {(DOMAIN, container_id)},
+            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",

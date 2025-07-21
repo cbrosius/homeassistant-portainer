@@ -179,7 +179,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         for entity_type in ["endpoints", "containers", "stacks"]:
             if entity_type == "containers":
-                portainer_ids = {v["Id"] for v in self.raw_data["containers"].values()}
+                portainer_ids = {
+                    f"{v["EndpointId"]}_{v["Name"]}"
+                    for v in self.raw_data["containers"].values()
+                }
             else:
                 portainer_ids = {
                     str(k) for k in self.raw_data.get(entity_type, {}).keys()
@@ -495,26 +498,39 @@ class PortainerCoordinator(DataUpdateCoordinator):
     #   async_recreate_container
     # ---------------------------
     async def async_recreate_container(
-        self, container_id: str, pull_image: bool = True
+        self, endpoint_id: str, container_name: str, pull_image: bool = True
     ) -> None:
         """Recreate a container after retrieving its details."""
-        _LOGGER.debug("Attempting to recreate container: %s", container_id)
-        container = self.get_specific_container(container_id)
+        _LOGGER.debug(
+            "Attempting to recreate container: %s on endpoint %s",
+            container_name,
+            endpoint_id,
+        )
+        container = self.get_specific_container(endpoint_id, container_name)
         if not container:
-            _LOGGER.error("Container %s not found in coordinator data.", container_id)
+            _LOGGER.error(
+                "Container %s on endpoint %s not found in coordinator data.",
+                container_name,
+                endpoint_id,
+            )
             return
 
-        endpoint_id = container["EndpointId"]
+        container_id = container.get("Id")
         _LOGGER.debug(
-            "Found container %s on endpoint %s. Calling API.", container_id, endpoint_id
+            "Found container %s on endpoint %s. Calling API.", container_name, endpoint_id
         )
         await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image
         )
 
-    def get_specific_container(self, container_id: str) -> dict | None:
+    def get_specific_container(
+        self, endpoint_id: str, container_name: str
+    ) -> dict | None:
         """Retrieve details for a specific container by its ID."""
         for container in self.data["containers"].values():
-            if container.get("Id") == container_id:
+            if (
+                container.get("EndpointId") == endpoint_id
+                and container.get("Name") == container_name
+            ):
                 return container
         return None

@@ -256,12 +256,27 @@ class ContainerSensor(PortainerSensor):
                 )
             return value
 
+        # For the container_id sensor, truncate the value
+        if self.entity_description.key == "container_id":
+            container_id = self._data.get(attr)
+            if container_id and len(container_id) > 12:
+                return f"{container_id[:6]}...{container_id[-6:]}"
+            return container_id
+
         # For sensors whose data is in the custom attributes dict
         if attr in self._data.get(CUSTOM_ATTRIBUTE_ARRAY, {}):
             return self._data[CUSTOM_ATTRIBUTE_ARRAY][attr]
 
         # Default: return the value of the attribute from the main data dict
         return self._data.get(attr)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attrs = super().extra_state_attributes
+        if self.entity_description.key == "container_id":
+            attrs["full_container_id"] = self._data.get("Id")
+        return attrs
 
     @property
     def device_info(self):

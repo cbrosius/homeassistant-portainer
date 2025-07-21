@@ -178,7 +178,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             str(k) for k in self.raw_data.get("endpoints", {}).keys()
         }
         current_stack_identifiers = {
-            f'stack_{k}' for k in self.raw_data.get("stacks", {}).keys()
+            f"stack_{k}" for k in self.raw_data.get("stacks", {}).keys()
         }
 
         for device in all_devices:
@@ -525,7 +525,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         container_id = container.get("Id")
         _LOGGER.debug(
-            "Found container %s on endpoint %s. Calling API.", container_name, endpoint_id
+            "Found container %s on endpoint %s. Calling API.",
+            container_name,
+            endpoint_id,
         )
         await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image

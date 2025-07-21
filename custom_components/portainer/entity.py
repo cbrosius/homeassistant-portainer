@@ -108,7 +108,9 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
                 if self.description.data_path == "containers":
                     self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}'
                 else:
-                    self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
+                    self._attr_unique_id = (
+                        f"{DOMAIN}-{self.description.key}-{portainer_id}"
+                    )
             else:
                 # fallback: just use config entry id and description key
                 self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"

@@ -127,20 +127,24 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         for identifier in docker_container_ids:
             try:
                 endpoint_id, container_id = identifier.split("_", 1)
-                service_path = f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+                service_path = (
+                    f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
+                )
                 await hass.async_add_executor_job(
                     coordinator.api.query, service_path, "POST", {}
                 )
-                container_name = coordinator.get_container_name(endpoint_id, container_id)
+                container_name = coordinator.get_container_name(
+                    endpoint_id, container_id
+                )
                 if container_name:
                     _LOGGER.info(
                         "Successfully performed '%s' on container '%s' (%s) on instance '%s'",
-                    action,
-                    container_name,
-                    container_id,
-                    coordinator.name,
-                )                    
-                
+                        action,
+                        container_name,
+                        container_id,
+                        coordinator.name,
+                    )
+
             except Exception as e:
                 _LOGGER.error(
                     "Failed to perform '%s' on container '%s' on instance '%s': %s",

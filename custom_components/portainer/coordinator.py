@@ -161,7 +161,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
         # _LOGGER.debug("data: %s", self.raw_data)
 
-        # --- Home Assistant Repairs Integration (entity registry aware) ---
+        # --- Home Assistant Repairs Integration (device registry aware) ---
         entity_reg = er.async_get(self.hass)
 
         # Map entity_type to unique_id prefix and translation key
@@ -331,16 +331,16 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 )
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
+                    container = all_containers[cid]
+                    container["Name"] = container["Names"][0][1:]
                     if (
                         not self.selected_containers
-                        or str(cid) not in self.selected_containers
+                        or f'{eid}_{container["Name"]}' not in self.selected_containers
                     ):
                         del all_containers[cid]
                         continue
 
-                    container = all_containers[cid]
                     container["Environment"] = self.raw_data["endpoints"][eid]["Name"]
-                    container["Name"] = container["Names"][0][1:]
                     container["ConfigEntryId"] = self.config_entry_id
                     container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 

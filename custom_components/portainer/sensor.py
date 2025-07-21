@@ -238,18 +238,6 @@ class ContainerSensor(PortainerSensor):
         return self.entity_description.name
 
     @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        if not super().available:
-            return False
-
-        if not self.entity_description.supported_states:
-            return True
-
-        container_state = self._data.get("State")
-        return container_state in self.entity_description.supported_states
-
-    @property
     def native_value(self) -> StateType | date | datetime | Decimal:
         """Return the value reported by the sensor."""
         attr = self.entity_description.data_attribute

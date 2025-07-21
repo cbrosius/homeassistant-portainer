@@ -43,21 +43,29 @@ async def async_create_sensors(
             entities.append(obj)
         else:
             for uid in data:
-                # Only create container entities for selected containers
-                if (
-                    description.func == "ContainerSensor"
-                    and coordinator.selected_containers
-                    and str(uid) not in coordinator.selected_containers
-                ):
-                    continue
+                # Filter based on selected items in config_flow
+                if description.data_path == "containers":
+                    container_data = data.get(uid, {})
+                    container_name = container_data.get("Name")
+                    endpoint_id = container_data.get("EndpointId")
 
-                # Only create stack entities for selected stacks
-                if (
-                    description.func == "StackSensor"
-                    and coordinator.selected_stacks
-                    and str(uid) not in coordinator.selected_stacks
-                ):
-                    continue
+                    if container_name and endpoint_id:
+                        device_identifier = f"{endpoint_id}_{container_name}"
+                        if (
+                            coordinator.selected_containers
+                            and device_identifier not in coordinator.selected_containers
+                        ):
+                            continue
+                    else:
+                        continue  # Cannot check if not selected, so skip
+
+                if description.data_path == "stacks":
+                    if (
+                        coordinator.selected_stacks
+                        and str(uid) not in coordinator.selected_stacks
+                    ):
+                        continue
+
                 obj = dispatcher[description.func](coordinator, description, uid)
 
                 entities.append(obj)

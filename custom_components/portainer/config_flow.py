@@ -372,13 +372,10 @@ class PortainerOptionsFlow(OptionsFlow):
                 """Helper to remove a device if its ID is in the list."""
                 for identifier in device.identifiers:
                     if identifier[0] == DOMAIN:
-                        device_type, device_id = identifier
+                        _, device_id = identifier
                         if (
-                            device_type == DOMAIN
-                            and device.model == device_type_str
-                            and any(
-                                removed_id in device_id for removed_id in device_ids
-                            )
+                            device.model == device_type_str
+                            and device_id in device_ids
                         ):
                             device_registry.async_remove_device(device.id)
                             _LOGGER.debug(

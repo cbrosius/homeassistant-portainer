@@ -218,7 +218,8 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Show status in container name
         container_options = {
-            str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
+            f"{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
+            for c in containers
         }
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
@@ -371,14 +372,8 @@ class PortainerOptionsFlow(OptionsFlow):
                 """Helper to remove a device if its ID is in the list."""
                 for identifier in device.identifiers:
                     if identifier[0] == DOMAIN:
-                        device_type, device_id = identifier
-                        if (
-                            device_type == DOMAIN
-                            and device.model == device_type_str
-                            and any(
-                                removed_id in device_id for removed_id in device_ids
-                            )
-                        ):
+                        _, device_id = identifier
+                        if device.model == device_type_str and device_id in device_ids:
                             device_registry.async_remove_device(device.id)
                             _LOGGER.debug(
                                 f"Removed {device_type_str.lower()} device: {device.id}"
@@ -447,7 +442,8 @@ class PortainerOptionsFlow(OptionsFlow):
                     )
             # Show status in container name
             container_options = {
-                str(c["id"]): f"{c['name']} [{c['status']}]" for c in containers
+                f"{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
+                for c in containers
             }
             stack_options = {str(s["id"]): s["name"] for s in stacks}
 

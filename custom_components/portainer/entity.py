@@ -43,21 +43,29 @@ async def async_create_sensors(
             entities.append(obj)
         else:
             for uid in data:
-                # Only create container entities for selected containers
-                if (
-                    description.func == "ContainerSensor"
-                    and coordinator.selected_containers
-                    and str(uid) not in coordinator.selected_containers
-                ):
-                    continue
+                # Filter based on selected items in config_flow
+                if description.data_path == "containers":
+                    container_data = data.get(uid, {})
+                    container_name = container_data.get("Name")
+                    endpoint_id = container_data.get("EndpointId")
 
-                # Only create stack entities for selected stacks
-                if (
-                    description.func == "StackSensor"
-                    and coordinator.selected_stacks
-                    and str(uid) not in coordinator.selected_stacks
-                ):
-                    continue
+                    if container_name and endpoint_id:
+                        device_identifier = f"{endpoint_id}_{container_name}"
+                        if (
+                            coordinator.selected_containers
+                            and device_identifier not in coordinator.selected_containers
+                        ):
+                            continue
+                    else:
+                        continue  # Cannot check if not selected, so skip
+
+                if description.data_path == "stacks":
+                    if (
+                        coordinator.selected_stacks
+                        and str(uid) not in coordinator.selected_stacks
+                    ):
+                        continue
+
                 obj = dispatcher[description.func](coordinator, description, uid)
 
                 entities.append(obj)
@@ -89,11 +97,20 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         self._uid = uid
         self._data = coordinator.data[self.description.data_path]
         if self._uid:
-            self._data = coordinator.data[self.description.data_path][self._uid]
+            if self.description.data_path == "containers":
+                self._data = coordinator.data[self.description.data_path][self._uid]
+            else:
+                self._data = coordinator.data[self.description.data_path][self._uid]
+
             # Use Portainer's Id directly for unique_id if available
             portainer_id = self._data.get("Id")
             if portainer_id:
-                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
+                if self.description.data_path == "containers":
+                    self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}'
+                else:
+                    self._attr_unique_id = (
+                        f"{DOMAIN}-{self.description.key}-{portainer_id}"
+                    )
             else:
                 # fallback: just use config entry id and description key
                 self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
@@ -106,9 +123,14 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         try:
             self._data = self.coordinator.data[self.description.data_path]
             if self._uid:
-                self._data = self.coordinator.data[self.description.data_path][
-                    self._uid
-                ]
+                if self.description.data_path == "containers":
+                    self._data = self.coordinator.data[self.description.data_path][
+                        self._uid
+                    ]
+                else:
+                    self._data = self.coordinator.data[self.description.data_path][
+                        self._uid
+                    ]
             super()._handle_coordinator_update()
         except KeyError:
             _LOGGER.debug("Error while updating entity %s", self.unique_id)

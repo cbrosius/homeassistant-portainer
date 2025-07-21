@@ -222,7 +222,12 @@ class PortainerAPI(object):
             status = container.get("State") or container.get("Status") or "unknown"
             if container_id:
                 container_list.append(
-                    {"id": str(container_id), "name": container_name, "status": status}
+                    {
+                        "id": str(container_id),
+                        "name": container_name,
+                        "status": status,
+                        "endpoint_id": endpoint_id,
+                    }
                 )
         return container_list
 

@@ -50,6 +50,7 @@ def _get_sensor_descriptions(
         "container_network_mode",
         "container_exit_code",
         "container_privileged_mode",
+        "container_id",
     ]
     for key in default_feature_keys:
         descriptions.extend([d for d in SENSOR_TYPES_FEATURES if d.key == key])
@@ -237,18 +238,6 @@ class ContainerSensor(PortainerSensor):
         return self.entity_description.name
 
     @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        if not super().available:
-            return False
-
-        if not self.entity_description.supported_states:
-            return True
-
-        container_state = self._data.get("State")
-        return container_state in self.entity_description.supported_states
-
-    @property
     def native_value(self) -> StateType | date | datetime | Decimal:
         """Return the value reported by the sensor."""
         attr = self.entity_description.data_attribute
@@ -267,6 +256,13 @@ class ContainerSensor(PortainerSensor):
                 )
             return value
 
+        # For the container_id sensor, truncate the value
+        if self.entity_description.key == "container_id":
+            container_id = self._data.get(attr)
+            if container_id and len(container_id) > 12:
+                return f"{container_id[:6]}...{container_id[-6:]}"
+            return container_id
+
         # For sensors whose data is in the custom attributes dict
         if attr in self._data.get(CUSTOM_ATTRIBUTE_ARRAY, {}):
             return self._data[CUSTOM_ATTRIBUTE_ARRAY][attr]
@@ -275,15 +271,23 @@ class ContainerSensor(PortainerSensor):
         return self._data.get(attr)
 
     @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attrs = super().extra_state_attributes
+        if self.entity_description.key == "container_id":
+            attrs["full_container_id"] = self._data.get("Id")
+        return attrs
+
+    @property
     def device_info(self):
         """Return device information for this container."""
-        container_id = self._data.get("Id")
         endpoint_id = self._data.get("EndpointId")
         name = self._data.get("Names", [self._data.get("Name", "Unknown")])[0]
         if name.startswith("/"):
             name = name[1:]
+
         return {
-            "identifiers": {(DOMAIN, container_id)},
+            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",

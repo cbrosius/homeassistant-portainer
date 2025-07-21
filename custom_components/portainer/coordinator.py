@@ -161,63 +161,74 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
         # _LOGGER.debug("data: %s", self.raw_data)
 
-        # --- Home Assistant Repairs Integration (entity registry aware) ---
-        entity_reg = er.async_get(self.hass)
+        # --- Home Assistant Repairs Integration (device registry aware) ---
+        device_registry = dr.async_get(self.hass)
 
-        # Map entity_type to unique_id prefix and translation key
-        unique_id_prefixes = {
-            "endpoints": f"{DOMAIN}-endpoints-",
-            "containers": f"{DOMAIN}-containers-",
-            "stacks": f"{DOMAIN}-stacks-",
+        # Get all devices for this config entry
+        all_devices = dr.async_entries_for_config_entry(
+            device_registry, self.config_entry.entry_id
+        )
+
+        # Get current identifiers from Portainer API data
+        current_container_identifiers = {
+            f'{v["EndpointId"]}_{v["Name"]}'
+            for v in self.raw_data.get("containers", {}).values()
+        }
+        current_endpoint_identifiers = {
+            str(k) for k in self.raw_data.get("endpoints", {}).keys()
+        }
+        current_stack_identifiers = {
+            f"stack_{k}" for k in self.raw_data.get("stacks", {}).keys()
         }
 
-        translation_keys = {
-            "endpoints": "missing_endpoint",
-            "containers": "missing_container",
-            "stacks": "missing_stack",
-        }
+        for device in all_devices:
+            if not device.identifiers:
+                continue
 
-        for entity_type in ["endpoints", "containers", "stacks"]:
-            if entity_type == "containers":
-                portainer_ids = {v["Id"] for v in self.raw_data["containers"].values()}
+            domain, device_identifier = list(device.identifiers)[0]
+
+            if domain != DOMAIN:
+                continue
+
+            is_stale = False
+            issue_key = ""
+            translation_key = ""
+            placeholders = {}
+
+            if device.model == "Container":
+                if device_identifier not in current_container_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_container_{device_identifier}"
+                    translation_key = "missing_container"
+                    placeholders = {"entity_name": device.name or "unknown"}
+            elif device.model == "Endpoint":
+                if device_identifier not in current_endpoint_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_endpoint_{device_identifier}"
+                    translation_key = "missing_endpoint"
+                    placeholders = {"entity_id": device.name or "unknown"}
+            elif device.model == "Stack":
+                if device_identifier not in current_stack_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_stack_{device_identifier}"
+                    translation_key = "missing_stack"
+                    placeholders = {"entity_name": device.name or "unknown"}
+
+            if is_stale:
+                async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    issue_key,
+                    is_fixable=True,
+                    severity=IssueSeverity.WARNING,
+                    translation_key=translation_key,
+                    translation_placeholders=placeholders,
+                    data={"device_id": device.id},
+                )
             else:
-                portainer_ids = {
-                    str(k) for k in self.raw_data.get(entity_type, {}).keys()
-                }
-            prefix = unique_id_prefixes[entity_type]
-            translation_key = translation_keys[entity_type]
-
-            for entity in er.async_entries_for_config_entry(
-                entity_reg, self.config_entry.entry_id
-            ):
-                if entity.unique_id and entity.unique_id.startswith(prefix):
-                    portainer_id = entity.unique_id.split("-")[-1]
-                    entity_name = None
-
-                    # Extract entity name for containers
-                    if entity_type == "containers":
-                        # Attempt to retrieve the container name, defaulting to "Unknown" if not found
-                        entity_name = (
-                            entity.original_name or entity.entity_id or "Unknown"
-                        )
-
-                    if portainer_id not in portainer_ids:
-                        placeholders = {"entity_id": portainer_id}
-                        if entity_type == "containers":
-                            placeholders["entity_name"] = entity_name
-                        async_create_issue(
-                            self.hass,
-                            DOMAIN,
-                            f"missing_{entity_type}_{portainer_id}",
-                            is_fixable=True,
-                            severity=IssueSeverity.WARNING,
-                            translation_key=translation_key,
-                            translation_placeholders=placeholders,
-                        )
-                    else:
-                        async_delete_issue(
-                            self.hass, DOMAIN, f"missing_{entity_type}_{portainer_id}"
-                        )
+                # If not stale, delete any existing issue
+                if issue_key:  # Ensure we have a key to delete
+                    async_delete_issue(self.hass, DOMAIN, issue_key)
         # --- End Repairs Integration ---
 
         return self.raw_data
@@ -328,16 +339,16 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 )
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
+                    container = all_containers[cid]
+                    container["Name"] = container["Names"][0][1:]
                     if (
                         not self.selected_containers
-                        or str(cid) not in self.selected_containers
+                        or f'{eid}_{container["Name"]}' not in self.selected_containers
                     ):
                         del all_containers[cid]
                         continue
 
-                    container = all_containers[cid]
                     container["Environment"] = self.raw_data["endpoints"][eid]["Name"]
-                    container["Name"] = container["Names"][0][1:]
                     container["ConfigEntryId"] = self.config_entry_id
                     container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 
@@ -350,11 +361,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
                                 ip = port_info.get("IP", "0.0.0.0")  # nosec
                                 # Don't show the default 0.0.0.0 IP
                                 ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""  # nosec
-                                port_str = f"{ip_prefix}{port_info['PublicPort']}->{port_info['PrivatePort']}/{port_info['Type']}"
+                                port_str = f'{ip_prefix}{port_info["PublicPort"]}->{port_info["PrivatePort"]}/{port_info["Type"]}'
                             elif "PrivatePort" in port_info:
                                 # Case for internal ports without public mapping
                                 port_str = (
-                                    f"{port_info['PrivatePort']}/{port_info['Type']}"
+                                    f'{port_info["PrivatePort"]}/{port_info["Type"]}'
                                 )
                             if port_str:
                                 ports_list.append(port_str)
@@ -460,7 +471,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         # ensure every environment has own set of containers
         self.raw_data["containers"] = {
-            str(cid): value
+            f'{value["EndpointId"]}_{value["Name"]}': value
             for t_dict in self.raw_data["containers"].values()
             for cid, value in t_dict.items()
         }
@@ -495,26 +506,41 @@ class PortainerCoordinator(DataUpdateCoordinator):
     #   async_recreate_container
     # ---------------------------
     async def async_recreate_container(
-        self, container_id: str, pull_image: bool = True
+        self, endpoint_id: str, container_name: str, pull_image: bool = True
     ) -> None:
         """Recreate a container after retrieving its details."""
-        _LOGGER.debug("Attempting to recreate container: %s", container_id)
-        container = self.get_specific_container(container_id)
+        _LOGGER.debug(
+            "Attempting to recreate container: %s on endpoint %s",
+            container_name,
+            endpoint_id,
+        )
+        container = self.get_specific_container(endpoint_id, container_name)
         if not container:
-            _LOGGER.error("Container %s not found in coordinator data.", container_id)
+            _LOGGER.error(
+                "Container %s on endpoint %s not found in coordinator data.",
+                container_name,
+                endpoint_id,
+            )
             return
 
-        endpoint_id = container["EndpointId"]
+        container_id = container.get("Id")
         _LOGGER.debug(
-            "Found container %s on endpoint %s. Calling API.", container_id, endpoint_id
+            "Found container %s on endpoint %s. Calling API.",
+            container_name,
+            endpoint_id,
         )
         await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image
         )
 
-    def get_specific_container(self, container_id: str) -> dict | None:
+    def get_specific_container(
+        self, endpoint_id: str, container_name: str
+    ) -> dict | None:
         """Retrieve details for a specific container by its ID."""
         for container in self.data["containers"].values():
-            if container.get("Id") == container_id:
+            if (
+                container.get("EndpointId") == endpoint_id
+                and container.get("Name") == container_name
+            ):
                 return container
         return None

@@ -162,65 +162,73 @@ class PortainerCoordinator(DataUpdateCoordinator):
         # _LOGGER.debug("data: %s", self.raw_data)
 
         # --- Home Assistant Repairs Integration (device registry aware) ---
-        entity_reg = er.async_get(self.hass)
+        device_registry = dr.async_get(self.hass)
 
-        # Map entity_type to unique_id prefix and translation key
-        unique_id_prefixes = {
-            "endpoints": f"{DOMAIN}-endpoints-",
-            "containers": f"{DOMAIN}-containers-",
-            "stacks": f"{DOMAIN}-stacks-",
+        # Get all devices for this config entry
+        all_devices = dr.async_entries_for_config_entry(
+            device_registry, self.config_entry.entry_id
+        )
+
+        # Get current identifiers from Portainer API data
+        current_container_identifiers = {
+            f'{v["EndpointId"]}_{v["Name"]}'
+            for v in self.raw_data.get("containers", {}).values()
+        }
+        current_endpoint_identifiers = {
+            str(k) for k in self.raw_data.get("endpoints", {}).keys()
+        }
+        current_stack_identifiers = {
+            f'stack_{k}' for k in self.raw_data.get("stacks", {}).keys()
         }
 
-        translation_keys = {
-            "endpoints": "missing_endpoint",
-            "containers": "missing_container",
-            "stacks": "missing_stack",
-        }
+        for device in all_devices:
+            if not device.identifiers:
+                continue
 
-        for entity_type in ["endpoints", "containers", "stacks"]:
-            if entity_type == "containers":
-                portainer_ids = {
-                    f"{v["EndpointId"]}_{v["Name"]}"
-                    for v in self.raw_data["containers"].values()
-                }
+            domain, device_identifier = list(device.identifiers)[0]
+
+            if domain != DOMAIN:
+                continue
+
+            is_stale = False
+            issue_key = ""
+            translation_key = ""
+            placeholders = {}
+
+            if device.model == "Container":
+                if device_identifier not in current_container_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_container_{device_identifier}"
+                    translation_key = "missing_container"
+                    placeholders = {"entity_name": device.name or "unknown"}
+            elif device.model == "Endpoint":
+                if device_identifier not in current_endpoint_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_endpoint_{device_identifier}"
+                    translation_key = "missing_endpoint"
+                    placeholders = {"entity_id": device.name or "unknown"}
+            elif device.model == "Stack":
+                if device_identifier not in current_stack_identifiers:
+                    is_stale = True
+                    issue_key = f"missing_stack_{device_identifier}"
+                    translation_key = "missing_stack"
+                    placeholders = {"entity_name": device.name or "unknown"}
+
+            if is_stale:
+                async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    issue_key,
+                    is_fixable=True,
+                    severity=IssueSeverity.WARNING,
+                    translation_key=translation_key,
+                    translation_placeholders=placeholders,
+                    data={"device_id": device.id},
+                )
             else:
-                portainer_ids = {
-                    str(k) for k in self.raw_data.get(entity_type, {}).keys()
-                }
-            prefix = unique_id_prefixes[entity_type]
-            translation_key = translation_keys[entity_type]
-
-            for entity in er.async_entries_for_config_entry(
-                entity_reg, self.config_entry.entry_id
-            ):
-                if entity.unique_id and entity.unique_id.startswith(prefix):
-                    portainer_id = entity.unique_id.split("-")[-1]
-                    entity_name = None
-
-                    # Extract entity name for containers
-                    if entity_type == "containers":
-                        # Attempt to retrieve the container name, defaulting to "Unknown" if not found
-                        entity_name = (
-                            entity.original_name or entity.entity_id or "Unknown"
-                        )
-
-                    if portainer_id not in portainer_ids:
-                        placeholders = {"entity_id": portainer_id}
-                        if entity_type == "containers":
-                            placeholders["entity_name"] = entity_name
-                        async_create_issue(
-                            self.hass,
-                            DOMAIN,
-                            f"missing_{entity_type}_{portainer_id}",
-                            is_fixable=True,
-                            severity=IssueSeverity.WARNING,
-                            translation_key=translation_key,
-                            translation_placeholders=placeholders,
-                        )
-                    else:
-                        async_delete_issue(
-                            self.hass, DOMAIN, f"missing_{entity_type}_{portainer_id}"
-                        )
+                # If not stale, delete any existing issue
+                if issue_key:  # Ensure we have a key to delete
+                    async_delete_issue(self.hass, DOMAIN, issue_key)
         # --- End Repairs Integration ---
 
         return self.raw_data
@@ -353,11 +361,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
                                 ip = port_info.get("IP", "0.0.0.0")  # nosec
                                 # Don't show the default 0.0.0.0 IP
                                 ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""  # nosec
-                                port_str = f"{ip_prefix}{port_info['PublicPort']}->{port_info['PrivatePort']}/{port_info['Type']}"
+                                port_str = f'{ip_prefix}{port_info["PublicPort"]}->{port_info["PrivatePort"]}/{port_info["Type"]}'
                             elif "PrivatePort" in port_info:
                                 # Case for internal ports without public mapping
                                 port_str = (
-                                    f"{port_info['PrivatePort']}/{port_info['Type']}"
+                                    f'{port_info["PrivatePort"]}/{port_info["Type"]}'
                                 )
                             if port_str:
                                 ports_list.append(port_str)

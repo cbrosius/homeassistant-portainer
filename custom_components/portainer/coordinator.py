@@ -471,7 +471,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         # ensure every environment has own set of containers
         self.raw_data["containers"] = {
-            str(cid): value
+            f'{value["EndpointId"]}_{value["Name"]}': value
             for t_dict in self.raw_data["containers"].values()
             for cid, value in t_dict.items()
         }

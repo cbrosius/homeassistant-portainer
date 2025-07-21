@@ -97,11 +97,18 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         self._uid = uid
         self._data = coordinator.data[self.description.data_path]
         if self._uid:
-            self._data = coordinator.data[self.description.data_path][self._uid]
+            if self.description.data_path == "containers":
+                self._data = coordinator.data[self.description.data_path][self._uid]
+            else:
+                self._data = coordinator.data[self.description.data_path][self._uid]
+
             # Use Portainer's Id directly for unique_id if available
             portainer_id = self._data.get("Id")
             if portainer_id:
-                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
+                if self.description.data_path == "containers":
+                    self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}'
+                else:
+                    self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}"
             else:
                 # fallback: just use config entry id and description key
                 self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
@@ -114,9 +121,14 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         try:
             self._data = self.coordinator.data[self.description.data_path]
             if self._uid:
-                self._data = self.coordinator.data[self.description.data_path][
-                    self._uid
-                ]
+                if self.description.data_path == "containers":
+                    self._data = self.coordinator.data[self.description.data_path][
+                        self._uid
+                    ]
+                else:
+                    self._data = self.coordinator.data[self.description.data_path][
+                        self._uid
+                    ]
             super()._handle_coordinator_update()
         except KeyError:
             _LOGGER.debug("Error while updating entity %s", self.unique_id)

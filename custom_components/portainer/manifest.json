@@ -1,5 +1,5 @@
 {
-    "domain": "portainer",
+    "domain": "portainer_cbrosius",
     "name": "Portainer",
     "codeowners": [
         "@tomaae",
@@ -13,5 +13,5 @@
     "issue_tracker": "https://github.com/cbrosius/homeassistant-portainer/issues",
     "loggers": ["portainer"],
     "requirements": [],
-    "version": "1.0.8"
+    "version": "1.0.13"
 }

@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import device_registry as dr, entity_platform as ep
 from homeassistant.helpers.typing import StateType
 
-from custom_components.portainer.const import DOMAIN
+from custom_components.portainer_cbrosius.const import DOMAIN
 
 from .const import (
     CUSTOM_ATTRIBUTE_ARRAY,

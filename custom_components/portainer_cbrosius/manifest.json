@@ -1,6 +1,6 @@
 {
-    "domain": "portainer_cbrosius",
-    "name": "Portainer_CBrosius",
+    "domain": "portainer",
+    "name": "Portainer",
     "codeowners": [
         "@tomaae",
         "@supleed2",
@@ -11,7 +11,7 @@
     "documentation": "https://github.com/cbrosius/homeassistant-portainer",
     "iot_class": "local_polling",
     "issue_tracker": "https://github.com/cbrosius/homeassistant-portainer/issues",
-    "loggers": ["portainer_cbrosius"],
+    "loggers": ["portainer"],
     "requirements": [],
     "version": "1.0.14"
 }

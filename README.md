@@ -173,5 +173,5 @@ To enable debug for Portainer integration, add following to your configuration.y
 logger:
   default: info
   logs:
-    custom_components.portainer: debug
+    custom_components.portainer_cbrosius: debug
 ```

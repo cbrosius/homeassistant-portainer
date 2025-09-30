@@ -146,7 +146,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             for eid, endpoint_data in self.raw_data.get("endpoints", {}).items():
                 device_registry.async_get_or_create(
                     config_entry_id=self.config_entry.entry_id,
-                    identifiers={(DOMAIN, str(eid))},
+                    identifiers={(DOMAIN, f"{eid}_{self.config_entry.entry_id}")},
                     name=endpoint_data.get("Name", "Unknown"),
                     manufacturer="Portainer",
                     model="Endpoint",
@@ -175,7 +175,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
             for v in self.raw_data.get("containers", {}).values()
         }
         current_endpoint_identifiers = {
-            str(k) for k in self.raw_data.get("endpoints", {}).keys()
+            f"{k}_{self.config_entry.entry_id}"
+            for k in self.raw_data.get("endpoints", {}).keys()
         }
         current_stack_identifiers = {
             f"stack_{k}" for k in self.raw_data.get("stacks", {}).keys()

@@ -15,9 +15,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import device_registry as dr, entity_platform as ep
 from homeassistant.helpers.typing import StateType
 
-from custom_components.portainer_cbrosius.const import DOMAIN
-
 from .const import (
+    DOMAIN,
     CUSTOM_ATTRIBUTE_ARRAY,
     CONF_FEATURE_HEALTH_CHECK,
     CONF_FEATURE_RESTART_POLICY,
@@ -203,7 +202,9 @@ class EndpointSensor(PortainerSensor):
         endpoint_id = self._data.get("Id")
         name = self._data.get("Name", "Unknown")
         return {
-            "identifiers": {(DOMAIN, str(endpoint_id))},
+            "identifiers": {
+                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
+            },
             "name": name,
             "manufacturer": "Portainer",
             "model": "Endpoint",
@@ -292,7 +293,11 @@ class ContainerSensor(PortainerSensor):
             "manufacturer": "Portainer",
             "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "via_device": (
+                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
+                if endpoint_id
+                else None
+            ),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }
 
@@ -350,6 +355,10 @@ class StackSensor(PortainerSensor):
             "manufacturer": "Portainer",
             "model": "Stack",
             "sw_version": self.sw_version,
-            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "via_device": (
+                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
+                if endpoint_id
+                else None
+            ),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

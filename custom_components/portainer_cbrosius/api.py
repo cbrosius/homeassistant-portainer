@@ -5,7 +5,7 @@ from logging import getLogger
 from threading import Lock
 from typing import Any, List, Optional
 
-from voluptuous import Optional
+
 
 from homeassistant.core import HomeAssistant
 

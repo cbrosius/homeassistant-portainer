@@ -142,7 +142,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             # Create/update endpoint devices in the registry before entities are created.
             # This prevents race conditions where a container device is created before
             # its parent endpoint device.
-            await self.hass.async_add_executor_job(self._create_endpoint_devices)
+            self._create_endpoint_devices()
         except Exception as error:
             _LOGGER.error("Error updating Portainer data: %s", error)
             raise UpdateFailed(error) from error

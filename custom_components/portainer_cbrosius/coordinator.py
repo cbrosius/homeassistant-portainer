@@ -158,9 +158,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
         finally:
             self.lock.release()
-    
+
             # Update data in a thread-safe manner
-            self.data = self.raw_data.copy()  # Ensure .data is up-to-date for entity creation
+            self.data = (
+                self.raw_data.copy()
+            )  # Ensure .data is up-to-date for entity creation
             # _LOGGER.debug("data: %s", self.raw_data)
 
         # --- Home Assistant Repairs Integration (device registry aware) ---
@@ -480,7 +482,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
             # Process each endpoint separately to avoid cross-contamination
             flat_containers = {}
             for endpoint_id, containers_dict in self.raw_data["containers"].items():
-                if containers_dict and endpoint_id == eid:  # Only process current endpoint
+                if (
+                    containers_dict and endpoint_id == eid
+                ):  # Only process current endpoint
                     for cid, container_data in containers_dict.items():
                         key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
                         flat_containers[key] = container_data
@@ -556,9 +560,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 return container
         return None
 
-    def get_container_name(
-        self, endpoint_id: str, container_id: str
-    ) -> str | None:
+    def get_container_name(self, endpoint_id: str, container_id: str) -> str | None:
         """Retrieve container name by endpoint_id and container_id."""
         for container in self.data.get("containers", {}).values():
             if (

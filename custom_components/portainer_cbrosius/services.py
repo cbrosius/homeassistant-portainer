@@ -128,7 +128,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
             try:
                 endpoint_id, container_name = identifier.split("_", 1)
                 # Get the actual container ID from the coordinator data
-                container = coordinator.get_specific_container(endpoint_id, container_name)
+                container = coordinator.get_specific_container(
+                    endpoint_id, container_name
+                )
                 if not container:
                     _LOGGER.error(
                         "Container '%s' on endpoint '%s' not found in coordinator data",

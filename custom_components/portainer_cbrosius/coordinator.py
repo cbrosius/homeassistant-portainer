@@ -477,9 +477,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
         # Only process if we have containers data for this endpoint
         if self.raw_data["containers"][eid]:
             # Create flat structure with unique keys for all endpoints
+            # Process each endpoint separately to avoid cross-contamination
             flat_containers = {}
             for endpoint_id, containers_dict in self.raw_data["containers"].items():
-                if containers_dict:  # Only process if this endpoint has containers
+                if containers_dict and endpoint_id == eid:  # Only process current endpoint
                     for cid, container_data in containers_dict.items():
                         key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
                         flat_containers[key] = container_data

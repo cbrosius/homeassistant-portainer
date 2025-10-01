@@ -146,10 +146,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                 )
                 if container_name:
                     _LOGGER.info(
-                        "Successfully performed '%s' on container '%s' (ID: %s) on instance '%s'",
+                        "Successfully performed '%s' on container '%s' on instance '%s'",
                         action,
                         container_name,
-                        container_id,
                         coordinator.name,
                     )
 

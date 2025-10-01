@@ -233,6 +233,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
     def device_info(self):
         """Return device information for this container."""
         endpoint_id = self._data.get("EndpointId")
+        container_id = self._data.get("Id")
         name = self._data.get("Names", [self._data.get("Name", "Unknown")])[0]
         if name.startswith("/"):
             name = name[1:]

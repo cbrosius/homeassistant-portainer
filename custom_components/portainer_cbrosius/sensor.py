@@ -288,7 +288,12 @@ class ContainerSensor(PortainerSensor):
             name = name[1:]
 
         return {
-            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},
+            "identifiers": {
+                (
+                    DOMAIN,
+                    f"{self.coordinator.config_entry.entry_id}_{endpoint_id}_{name}",
+                )
+            },
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",

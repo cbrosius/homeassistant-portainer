@@ -6,7 +6,6 @@ from threading import Lock
 from typing import Any, List, Optional
 
 
-
 from homeassistant.core import HomeAssistant
 
 _LOGGER = getLogger(__name__)

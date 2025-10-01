@@ -169,7 +169,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         # Get current identifiers from Portainer API data
         current_container_identifiers = {
-            f'{v["EndpointId"]}_{v["Name"]}'
+            f'{self.config_entry.entry_id}_{v["EndpointId"]}_{v["Name"]}'
             for v in self.raw_data.get("containers", {}).values()
         }
         current_endpoint_identifiers = {

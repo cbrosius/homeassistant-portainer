@@ -239,7 +239,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
             name = name[1:]
 
         return {
-            "identifiers": {(DOMAIN, f"{endpoint_id}_{name}")},
+            "identifiers": {(DOMAIN, f"{self.coordinator.config_entry.entry_id}_{endpoint_id}_{name}")},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Container",
@@ -336,7 +336,7 @@ class StackActionButton(PortainerEntity, ButtonEntity):
         name = self._data.get("Name", "Unknown")
 
         return {
-            "identifiers": {(DOMAIN, f"stack_{stack_id}")},  # Matches StackSensor
+            "identifiers": {(DOMAIN, f"{self.coordinator.config_entry.entry_id}_stack_{stack_id}")},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Stack",

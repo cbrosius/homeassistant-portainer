@@ -466,24 +466,18 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             parsed_details.get("Restart_Policy", "unknown")
                         )
 
-        # Store containers for this endpoint
-        self.raw_data["containers"][eid] = all_containers
+                # Store containers for this endpoint
+                self.raw_data["containers"][eid] = all_containers
 
-        # ensure every environment has own set of containers
-        # Only process if we have containers data for this endpoint
-        if self.raw_data["containers"][eid]:
-            # Create flat structure with unique keys for all endpoints
-            # Process each endpoint separately to avoid cross-contamination
-            flat_containers = {}
-            for endpoint_id, containers_dict in self.raw_data["containers"].items():
-                if (
-                    containers_dict and endpoint_id == eid
-                ):  # Only process current endpoint
-                    for cid, container_data in containers_dict.items():
-                        key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
-                        flat_containers[key] = container_data
+        # Create flat structure with unique keys for all endpoints
+        flat_containers = {}
+        for endpoint_id, containers_dict in self.raw_data["containers"].items():
+            if containers_dict:
+                for cid, container_data in containers_dict.items():
+                    key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
+                    flat_containers[key] = container_data
 
-            self.raw_data["containers"] = flat_containers
+        self.raw_data["containers"] = flat_containers
 
     # ---------------------------
     #   get_stacks

@@ -23,15 +23,15 @@ jobs:
           python3 .github/update_version.py --version $TAG_NAME
       - name: Zip portainer dir
         run: |
-          cd custom_components/portainer_cbrosius
-          zip portainer_cbrosius.zip -r ./
+          cd custom_components/portainer
+          zip portainer.zip -r ./
       - name: Upload zip to release
         uses: svenstaro/upload-release-action@v2
 
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: custom_components/portainer_cbrosius/portainer_cbrosius.zip
-          asset_name: portainer_cbrosius.zip
+          file: custom_components/portainer/portainer.zip
+          asset_name: portainer.zip
           tag: ${{ github.ref }}
           overwrite: true
 

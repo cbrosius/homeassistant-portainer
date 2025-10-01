@@ -70,7 +70,7 @@ jobs:
       - name: Run Bandit
         run: |
           mkdir -p output
-          bandit -c .github/bandit.yaml -r custom_components/portainer_cbrosius -o output/security_report.txt -f txt
+          bandit -c .github/bandit.yaml -r custom_components/portainer -o output/security_report.txt -f txt
         continue-on-error: true
       - name: Upload security report
         uses: actions/upload-artifact@v4

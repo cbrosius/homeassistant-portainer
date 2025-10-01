@@ -53,8 +53,6 @@ class PortainerFixFlow(RepairsFlow):
             portainer_id = "_".join(parts[2:])
 
             device_identifier = portainer_id
-            if entity_type == "stacks":
-                device_identifier = f"stack_{portainer_id}"
 
             device_reg = dr.async_get(self.hass)
             device_entry = device_reg.async_get_device(

@@ -177,7 +177,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             for k in self.raw_data.get("endpoints", {}).keys()
         }
         current_stack_identifiers = {
-            f"stack_{k}" for k in self.raw_data.get("stacks", {}).keys()
+            f"{self.config_entry.entry_id}_stack_{k}" for k in self.raw_data.get("stacks", {}).keys()
         }
 
         for device in all_devices:

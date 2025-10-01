@@ -355,7 +355,7 @@ class StackSensor(PortainerSensor):
         name = self._data.get("Name", "Unknown")
 
         return {
-            "identifiers": {(DOMAIN, f"stack_{stack_id}")},
+            "identifiers": {(DOMAIN, f"{self.coordinator.config_entry.entry_id}_stack_{stack_id}")},
             "name": name,
             "manufacturer": "Portainer",
             "model": "Stack",

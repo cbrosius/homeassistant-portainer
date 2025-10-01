@@ -8,7 +8,6 @@ from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -131,6 +130,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         try:
             await asyncio_wait_for(self.lock.acquire(), timeout=10)
         except Exception:
+            _LOGGER.warning("Failed to acquire lock within timeout, skipping update")
             return
 
         try:
@@ -154,12 +154,14 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     configuration_url=self.api._url.rstrip("/api/"),
                 )
         except Exception as error:
-            self.lock.release()
+            _LOGGER.error("Error updating Portainer data: %s", error)
             raise UpdateFailed(error) from error
-
-        self.lock.release()
-        self.data = self.raw_data  # Ensure .data is up-to-date for entity creation
-        # _LOGGER.debug("data: %s", self.raw_data)
+        finally:
+            self.lock.release()
+    
+            # Update data in a thread-safe manner
+            self.data = self.raw_data.copy()  # Ensure .data is up-to-date for entity creation
+            # _LOGGER.debug("data: %s", self.raw_data)
 
         # --- Home Assistant Repairs Integration (device registry aware) ---
         device_registry = dr.async_get(self.hass)
@@ -468,14 +470,21 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             parsed_details.get("Restart_Policy", "unknown")
                         )
 
+        # Store containers for this endpoint
         self.raw_data["containers"][eid] = all_containers
 
         # ensure every environment has own set of containers
-        self.raw_data["containers"] = {
-            f'{value["EndpointId"]}_{value["Name"]}': value
-            for t_dict in self.raw_data["containers"].values()
-            for cid, value in t_dict.items()
-        }
+        # Only process if we have containers data for this endpoint
+        if self.raw_data["containers"][eid]:
+            # Create flat structure with unique keys for all endpoints
+            flat_containers = {}
+            for endpoint_id, containers_dict in self.raw_data["containers"].items():
+                if containers_dict:  # Only process if this endpoint has containers
+                    for cid, container_data in containers_dict.items():
+                        key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
+                        flat_containers[key] = container_data
+
+            self.raw_data["containers"] = flat_containers
 
     # ---------------------------
     #   get_stacks
@@ -544,4 +553,16 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 and container.get("Name") == container_name
             ):
                 return container
+        return None
+
+    def get_container_name(
+        self, endpoint_id: str, container_id: str
+    ) -> str | None:
+        """Retrieve container name by endpoint_id and container_id."""
+        for container in self.data.get("containers", {}).values():
+            if (
+                container.get("EndpointId") == endpoint_id
+                and container.get("Id") == container_id
+            ):
+                return container.get("Name")
         return None

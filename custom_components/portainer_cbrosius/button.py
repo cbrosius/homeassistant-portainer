@@ -196,9 +196,10 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
         return container_state in self.entity_description.supported_states
 
     async def async_press(self) -> None:
-        """Handle the button press to restart the container."""
+        """Handle the button press to perform action on the container."""
         endpoint_id = self._data.get("EndpointId")
         container_id = self._data.get("Id")
+        container_name = self._data.get("Name")
         action = self.entity_description.action
 
         if not endpoint_id or not container_id or not action:
@@ -206,6 +207,14 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
                 "Could not perform action on container, missing endpoint, container id, or action"
             )
             return
+
+        _LOGGER.debug(
+            "Performing '%s' action on container '%s' (ID: %s) on endpoint %s",
+            action,
+            container_name,
+            container_id,
+            endpoint_id,
+        )
 
         service_path = (
             f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"

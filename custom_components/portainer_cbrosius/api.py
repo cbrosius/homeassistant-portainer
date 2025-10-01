@@ -5,7 +5,6 @@ from logging import getLogger
 from threading import Lock
 from typing import Any
 
-from requests import get as requests_get, post as requests_post
 from voluptuous import Optional
 
 from homeassistant.core import HomeAssistant
@@ -63,10 +62,11 @@ class PortainerAPI(object):
     # ---------------------------
     def query(
         self, service: str, method: str = "GET", params: dict[str, Any] | None = None
-    ) -> Optional(list):
+    ) -> Optional[list]:
         """Retrieve data from Portainer."""
         self.lock.acquire()
         error = False
+        response = None
         try:
             # _LOGGER.debug(
             #     "Portainer %s query: %s, %s, %s",
@@ -100,15 +100,16 @@ class PortainerAPI(object):
                 # _LOGGER.debug("Portainer %s query response: %s", self._host, data)
             else:
                 data = None  # Or any other appropriate value indicating no data
-        except Exception:
+        except Exception as e:
             error = True
+            _LOGGER.debug("Exception in API query: %s", e)
 
         if error:
             log_message = f'Portainer {self._host} unable to fetch data "{service}"'
-            if "response" in locals() and hasattr(response, "status_code"):
+            if response and hasattr(response, "status_code"):
                 log_message += f" ({response.status_code})"
             else:
-                log_message += f" ({str(Exception)})"
+                log_message += " (connection error)"
 
             # Add more context if available (e.g., for container recreate)
             if "containers" in service and "recreate" in service:
@@ -123,7 +124,7 @@ class PortainerAPI(object):
             _LOGGER.warning(log_message)
 
             if (
-                "response" in locals()
+                response
                 and hasattr(response, "status_code")
                 and response.status_code != 500
                 and service != "reporting/get_data"
@@ -131,7 +132,7 @@ class PortainerAPI(object):
                 self._connected = False
             self._error = (
                 response.status_code
-                if "response" in locals() and hasattr(response, "status_code")
+                if response and hasattr(response, "status_code")
                 else "no_response"
             )
             self.lock.release()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Any
+from typing import Any, Optional
 
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv

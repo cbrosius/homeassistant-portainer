@@ -3,7 +3,7 @@
 import requests
 from logging import getLogger
 from threading import Lock
-from typing import Any
+from typing import Any, List, Optional
 
 from voluptuous import Optional
 
@@ -61,8 +61,8 @@ class PortainerAPI(object):
     #   query
     # ---------------------------
     def query(
-        self, service: str, method: str = "GET", params: dict[str, Any] | None = None
-    ) -> Optional[list]:
+        self, service: str, method: str = "GET", params: Optional[dict[str, Any]] = None
+    ) -> Optional[List[dict]]:
         """Retrieve data from Portainer."""
         self.lock.acquire()
         error = False

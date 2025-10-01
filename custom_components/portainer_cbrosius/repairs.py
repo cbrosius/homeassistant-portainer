@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import voluptuous as vol
 
@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
-    data: dict[str, str | int | float | None] | None,
+    data: Optional[dict[str, Any]],
 ) -> RepairsFlow:
     """Create a fix flow."""
     _LOGGER.debug("Creating PortainerFixFlow for issue: %s", issue_id)

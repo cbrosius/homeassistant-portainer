@@ -142,17 +142,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             # Create/update endpoint devices in the registry before entities are created.
             # This prevents race conditions where a container device is created before
             # its parent endpoint device.
-            device_registry = dr.async_get(self.hass)
-            for eid, endpoint_data in self.raw_data.get("endpoints", {}).items():
-                device_registry.async_get_or_create(
-                    config_entry_id=self.config_entry.entry_id,
-                    identifiers={(DOMAIN, f"{eid}_{self.config_entry.entry_id}")},
-                    name=endpoint_data.get("Name", "Unknown"),
-                    manufacturer="Portainer",
-                    model="Endpoint",
-                    sw_version=endpoint_data.get("DockerVersion", "Unknown"),
-                    configuration_url=self.api._url.rstrip("/api/"),
-                )
+            await self.hass.async_add_executor_job(self._create_endpoint_devices)
         except Exception as error:
             _LOGGER.error("Error updating Portainer data: %s", error)
             raise UpdateFailed(error) from error
@@ -164,6 +154,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 self.raw_data.copy()
             )  # Ensure .data is up-to-date for entity creation
             # _LOGGER.debug("data: %s", self.raw_data)
+
+            # Ensure devices are created immediately for entity recognition
+            if self.raw_data.get("endpoints"):
+                self._create_endpoint_devices()
 
         # --- Home Assistant Repairs Integration (device registry aware) ---
         device_registry = dr.async_get(self.hass)
@@ -569,3 +563,17 @@ class PortainerCoordinator(DataUpdateCoordinator):
             ):
                 return container.get("Name")
         return None
+
+    def _create_endpoint_devices(self) -> None:
+        """Create endpoint devices in the registry."""
+        device_registry = dr.async_get(self.hass)
+        for eid, endpoint_data in self.raw_data.get("endpoints", {}).items():
+            device_registry.async_get_or_create(
+                config_entry_id=self.config_entry.entry_id,
+                identifiers={(DOMAIN, f"{eid}_{self.config_entry.entry_id}")},
+                name=endpoint_data.get("Name", "Unknown"),
+                manufacturer="Portainer",
+                model="Endpoint",
+                sw_version=endpoint_data.get("DockerVersion", "Unknown"),
+                configuration_url=self.api._url.rstrip("/api/"),
+            )

@@ -244,7 +244,11 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
             "manufacturer": "Portainer",
             "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "via_device": (
+                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
+                if endpoint_id
+                else None
+            ),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }
 
@@ -337,6 +341,10 @@ class StackActionButton(PortainerEntity, ButtonEntity):
             "manufacturer": "Portainer",
             "model": "Stack",
             "sw_version": self.sw_version,
-            "via_device": (DOMAIN, str(endpoint_id)) if endpoint_id else None,
+            "via_device": (
+                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
+                if endpoint_id
+                else None
+            ),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

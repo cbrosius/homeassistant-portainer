@@ -104,19 +104,22 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
 
             # Use Portainer's Id directly for unique_id if available
             portainer_id = self._data.get("Id")
+            config_entry_id = self.get_config_entry_id()
             if portainer_id:
                 if self.description.data_path == "containers":
-                    self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}'
+                    self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{portainer_id}_{config_entry_id}'
                 else:
-                    self._attr_unique_id = (
-                        f"{DOMAIN}-{self.description.key}-{portainer_id}"
-                    )
+                    self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}_{config_entry_id}"
             else:
                 # fallback: just use config entry id and description key
-                self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
+                config_entry_id = self.get_config_entry_id()
+                self._attr_unique_id = (
+                    f"{DOMAIN}-{self.description.key}-{config_entry_id}"
+                )
         else:
             # build _attr_unique_id (no _uid)
-            self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{slugify(self.get_config_entry_id()).lower()}"
+            config_entry_id = self.get_config_entry_id()
+            self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{config_entry_id}"
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -197,14 +200,15 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
                 configuration_url=f"http{'s' if self.coordinator.config_entry.data[CONF_SSL] else ''}://{self.coordinator.config_entry.data[CONF_HOST]}",
             )
         else:
-            # For container sensors, use the environment name and container name for unique identification
+            # For container sensors, use the environment name as the device group
             if (
                 self.description.func == "ContainerSensor"
                 and "Environment" in self._data
             ):
                 dev_group = self._data["Environment"]
-                container_name = self._data.get("Name", "unknown")
-                dev_connection_value = f"{self.coordinator.name}_{dev_group}_{container_name}_{self.get_config_entry_id()}"
+                dev_connection_value = (
+                    f"{self.coordinator.name}_{dev_group}_{self.get_config_entry_id()}"
+                )
 
             return DeviceInfo(
                 connections={(dev_connection, f"{dev_connection_value}")},

@@ -343,7 +343,29 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
                     container = all_containers[cid]
-                    container["Name"] = container["Names"][0][1:]
+
+                    # Safely extract container name from Names array
+                    try:
+                        if (
+                            isinstance(container.get("Names"), list)
+                            and len(container["Names"]) > 0
+                            and container["Names"][0]
+                            and len(container["Names"][0]) > 1
+                        ):
+                            container["Name"] = container["Names"][0][1:]
+                        else:
+                            # Fallback: use container ID or generate a name
+                            container["Name"] = container.get(
+                                "Name", f"container_{cid}"
+                            )
+                    except (KeyError, IndexError, TypeError) as e:
+                        _LOGGER.warning(
+                            "Failed to extract container name for %s, using ID as fallback: %s",
+                            cid,
+                            e,
+                        )
+                        container["Name"] = container.get("Name", f"container_{cid}")
+
                     if (
                         not self.selected_containers
                         or f'{eid}_{container["Name"]}' not in self.selected_containers

@@ -302,13 +302,26 @@ class PortainerOptionsFlow(OptionsFlow):
 
             # Remove endpoint devices and their associated container/stack devices
             device_registry = dr.async_get(self.hass)
+
+            # Get all devices for this config entry before making changes
+            all_devices = dr.async_entries_for_config_entry(
+                device_registry, self.config_entry.entry_id
+            )
+
             for endpoint_id in removed_endpoints:
-                # Remove the endpoint device itself
-                device = device_registry.async_get_device(
-                    identifiers={(DOMAIN, endpoint_id)}
-                )
-                if device:
-                    device_registry.async_remove_device(device.id)
+                # Remove the endpoint device itself (use correct identifier format)
+                endpoint_device = None
+                for device in all_devices:
+                    if device.model == "Endpoint" and any(
+                        f"{endpoint_id}_" in str(identifier)
+                        for identifier in device.identifiers
+                    ):
+                        endpoint_device = device
+                        break
+
+                if endpoint_device:
+                    device_registry.async_remove_device(endpoint_device.id)
+                    _LOGGER.debug(f"Removed endpoint device: {endpoint_device.id}")
 
             self.options = dict(self.config_entry.options)
             self.options["endpoints"] = user_input["endpoints"]
@@ -368,40 +381,52 @@ class PortainerOptionsFlow(OptionsFlow):
             # Remove devices from the registry
             device_registry = dr.async_get(self.hass)
 
-            def _remove_device(device, device_ids, device_type_str):
-                """Helper to remove a device if its ID is in the list."""
+            def _device_belongs_to_removed_items(
+                device, removed_containers, removed_stacks
+            ):
+                """Check if device belongs to removed containers or stacks."""
                 for identifier in device.identifiers:
                     if identifier[0] == DOMAIN:
-                        _, device_id = identifier
-                        if device.model == device_type_str and device_id in device_ids:
-                            device_registry.async_remove_device(device.id)
-                            _LOGGER.debug(
-                                f"Removed {device_type_str.lower()} device: {device.id}"
-                            )
-                            return True  # Indicate that the device was removed
-                return False
+                        device_id = str(identifier[1])
+
+                        # Check if this device belongs to a removed container
+                        for removed_container in removed_containers:
+                            if removed_container in device_id:
+                                return True, "Container"
+
+                        # Check if this device belongs to a removed stack
+                        for removed_stack in removed_stacks:
+                            if (
+                                f"stack_{removed_stack}" in device_id
+                                or removed_stack in device_id
+                            ):
+                                return True, "Stack"
+
+                return False, None
 
             entity_registry = er.async_get(self.hass)  # Get the entity registry
 
-            # Iterate and remove container devices
+            # Iterate and remove container and stack devices
+            devices_to_remove = []
             for device in dr.async_entries_for_config_entry(
                 device_registry, self.config_entry.entry_id
             ):
-                if _remove_device(device, removed_containers, "Container"):
-                    for entity in er.async_entries_for_device(
-                        entity_registry, device.id, include_disabled_entities=True
-                    ):
-                        entity_registry.async_remove(entity.entity_id)
+                belongs_to_removed, device_type = _device_belongs_to_removed_items(
+                    device, removed_containers, removed_stacks
+                )
+                if belongs_to_removed:
+                    devices_to_remove.append((device, device_type))
 
-            # Iterate and remove stack devices
-            for device in dr.async_entries_for_config_entry(
-                device_registry, self.config_entry.entry_id
-            ):
-                if _remove_device(device, removed_stacks, "Stack"):
-                    for entity in er.async_entries_for_device(
-                        entity_registry, device.id, include_disabled_entities=True
-                    ):
-                        entity_registry.async_remove(entity.entity_id)
+            # Remove the devices and their entities
+            for device, device_type in devices_to_remove:
+                device_registry.async_remove_device(device.id)
+                _LOGGER.debug(f"Removed {device_type.lower()} device: {device.id}")
+
+                # Remove all entities for this device
+                for entity in er.async_entries_for_device(
+                    entity_registry, device.id, include_disabled_entities=True
+                ):
+                    entity_registry.async_remove(entity.entity_id)
 
             self.options["containers"] = user_input.get("containers", [])
             self.options["stacks"] = user_input.get("stacks", [])

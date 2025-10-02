@@ -397,12 +397,27 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     )
 
                     # Get detailed info for every container
-                    inspect_data_raw = self.api.query(
-                        f"endpoints/{eid}/docker/containers/{cid}/json",
-                        "GET",
-                        {"all": True},
-                    )
-                    if not inspect_data_raw:
+                    try:
+                        inspect_data_raw = self.api.query(
+                            f"endpoints/{eid}/docker/containers/{cid}/json",
+                            "GET",
+                            {"all": True},
+                        )
+                        if not inspect_data_raw:
+                            _LOGGER.warning(
+                                "Container %s on endpoint %s inspection returned no data, skipping",
+                                container.get("Name", cid),
+                                eid,
+                            )
+                            del all_containers[cid]
+                            continue
+                    except Exception as e:
+                        _LOGGER.warning(
+                            "Failed to inspect container %s on endpoint %s: %s, skipping",
+                            container.get("Name", cid),
+                            eid,
+                            e,
+                        )
                         del all_containers[cid]
                         continue
 

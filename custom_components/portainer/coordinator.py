@@ -127,8 +127,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
     # ---------------------------
     async def _async_update_data(self) -> None:
         """Update Portainer data."""
+        lock_acquired = False
         try:
             await asyncio_wait_for(self.lock.acquire(), timeout=10)
+            lock_acquired = True
         except Exception:
             _LOGGER.warning("Failed to acquire lock within timeout, skipping update")
             return
@@ -147,7 +149,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error updating Portainer data: %s", error)
             raise UpdateFailed(error) from error
         finally:
-            self.lock.release()
+            if lock_acquired:
+                self.lock.release()
 
             # Update data in a thread-safe manner
             self.data = (

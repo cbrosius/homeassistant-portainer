@@ -152,15 +152,13 @@ class PortainerCoordinator(DataUpdateCoordinator):
             if lock_acquired:
                 self.lock.release()
 
-            # Update data in a thread-safe manner
-            self.data = (
-                self.raw_data.copy()
-            )  # Ensure .data is up-to-date for entity creation
-            # _LOGGER.debug("data: %s", self.raw_data)
+        # Update data in a thread-safe manner after lock is released
+        self.data = (
+            self.raw_data.copy()
+        )  # Ensure .data is up-to-date for entity creation
+        # _LOGGER.debug("data: %s", self.raw_data)
 
-            # Ensure devices are created immediately for entity recognition
-            if self.raw_data.get("endpoints"):
-                self._create_endpoint_devices()
+        # Devices are already created in the try block above, no need to call again
 
         # --- Home Assistant Repairs Integration (device registry aware) ---
         device_registry = dr.async_get(self.hass)

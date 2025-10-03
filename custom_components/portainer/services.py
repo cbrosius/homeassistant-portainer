@@ -143,9 +143,7 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                 service_path = (
                     f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
                 )
-                await hass.async_add_executor_job(
-                    coordinator.api.query, service_path, "POST", {}
-                )
+                await coordinator.api.query(service_path, "POST", {})
                 if container_name:
                     _LOGGER.info(
                         "Successfully performed '%s' on container '%s' on instance '%s'",
@@ -222,9 +220,7 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
 
             try:
-                await hass.async_add_executor_job(
-                    coordinator.api.query, service_path, "POST", {}
-                )
+                await coordinator.api.query(service_path, "POST", {})
                 _LOGGER.info(
                     "Successfully performed '%s' on stack '%s' on instance '%s'",
                     action,

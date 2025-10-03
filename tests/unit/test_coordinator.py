@@ -692,20 +692,20 @@ class TestPortainerCoordinator:
         all_devices = [mock_device_container]
 
         # Test scenario: container not found for 3 consecutive updates
-        with patch("custom_components.portainer.coordinator.dr") as mock_dr, \
-                patch("custom_components.portainer.coordinator.async_create_issue") as mock_create_issue, \
-                patch("custom_components.portainer.coordinator.async_delete_issue") as mock_delete_issue:
+        with patch("custom_components.portainer.coordinator.dr") as mock_dr, patch(
+            "custom_components.portainer.coordinator.async_create_issue"
+        ) as mock_create_issue, patch(
+            "custom_components.portainer.coordinator.async_delete_issue"
+        ) as mock_delete_issue:
 
             mock_device_registry = Mock()
             mock_dr.async_get.return_value = mock_device_registry
-            mock_device_registry.async_entries_for_config_entry.return_value = all_devices
+            mock_device_registry.async_entries_for_config_entry.return_value = (
+                all_devices
+            )
 
             # First update: container not found (failure 1)
-            coordinator.raw_data = {
-                "containers": {},
-                "endpoints": {},
-                "stacks": {}
-            }
+            coordinator.raw_data = {"containers": {}, "endpoints": {}, "stacks": {}}
             await coordinator._async_update_data()
 
             # Should not create issue after 1 failure
@@ -723,7 +723,9 @@ class TestPortainerCoordinator:
             # Should create issue after 3 failures
             mock_create_issue.assert_called_once()
             call_args = mock_create_issue.call_args
-            assert "missing_container_test_entry_id_1_test-container" in call_args[1]  # issue_key
+            assert (
+                "missing_container_test_entry_id_1_test-container" in call_args[1]
+            )  # issue_key
 
     @pytest.mark.asyncio
     async def test_failure_count_cleared_when_device_found(self, coordinator):
@@ -737,13 +739,17 @@ class TestPortainerCoordinator:
 
         all_devices = [mock_device]
 
-        with patch("custom_components.portainer.coordinator.dr") as mock_dr, \
-                patch("custom_components.portainer.coordinator.async_create_issue") as mock_create_issue, \
-                patch("custom_components.portainer.coordinator.async_delete_issue") as mock_delete_issue:
+        with patch("custom_components.portainer.coordinator.dr") as mock_dr, patch(
+            "custom_components.portainer.coordinator.async_create_issue"
+        ) as mock_create_issue, patch(
+            "custom_components.portainer.coordinator.async_delete_issue"
+        ) as mock_delete_issue:
 
             mock_device_registry = Mock()
             mock_dr.async_get.return_value = mock_device_registry
-            mock_device_registry.async_entries_for_config_entry.return_value = all_devices
+            mock_device_registry.async_entries_for_config_entry.return_value = (
+                all_devices
+            )
 
             # Simulate 2 failures first
             coordinator.raw_data = {"containers": {}, "endpoints": {}, "stacks": {}}
@@ -755,19 +761,26 @@ class TestPortainerCoordinator:
 
             # Now device is found - should clear failure count
             coordinator.raw_data = {
-                "containers": {"1_test-container": {"Name": "test-container", "EndpointId": "1"}},
+                "containers": {
+                    "1_test-container": {"Name": "test-container", "EndpointId": "1"}
+                },
                 "endpoints": {},
-                "stacks": {}
+                "stacks": {},
             }
             await coordinator._async_update_data()
 
             # Should delete any existing issues and clear counter
             mock_delete_issue.assert_called_once()
             call_args = mock_delete_issue.call_args
-            assert "missing_container_test_entry_id_1_test-container" in call_args[1]  # issue_key
+            assert (
+                "missing_container_test_entry_id_1_test-container" in call_args[1]
+            )  # issue_key
 
             # Counter should be cleared
-            assert "missing_container_test_entry_id_1_test-container" not in coordinator._consecutive_failures["containers"]
+            assert (
+                "missing_container_test_entry_id_1_test-container"
+                not in coordinator._consecutive_failures["containers"]
+            )
 
     def test_get_containers_with_none_container_handling(self, coordinator, mock_api):
         """Test get containers with None container handling."""

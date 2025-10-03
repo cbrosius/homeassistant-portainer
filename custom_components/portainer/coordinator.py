@@ -90,11 +90,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self.datasets_hass_device_id = None
 
         # Track consecutive failures for repair issues (only create after 3 failures)
-        self._consecutive_failures = {
-            "containers": {},
-            "endpoints": {},
-            "stacks": {}
-        }
+        self._consecutive_failures = {"containers": {}, "endpoints": {}, "stacks": {}}
 
         self.selected_endpoints = set(
             str(e)
@@ -223,7 +219,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             model_key_map = {
                 "Container": "containers",
                 "Endpoint": "endpoints",
-                "Stack": "stacks"
+                "Stack": "stacks",
             }
             failure_key = model_key_map.get(device.model, device.model.lower() + "s")
 

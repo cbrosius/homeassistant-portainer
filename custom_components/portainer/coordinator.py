@@ -89,6 +89,13 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self._systemstats_errored = []
         self.datasets_hass_device_id = None
 
+        # Track consecutive failures for repair issues (only create after 3 failures)
+        self._consecutive_failures = {
+            "containers": {},
+            "endpoints": {},
+            "stacks": {}
+        }
+
         self.selected_endpoints = set(
             str(e)
             for e in config_entry.options.get(
@@ -191,45 +198,58 @@ class PortainerCoordinator(DataUpdateCoordinator):
             if domain != DOMAIN:
                 continue
 
-            is_stale = False
+            device_found = False
             issue_key = ""
             translation_key = ""
             placeholders = {}
 
             if device.model == "Container":
-                if device_identifier not in current_container_identifiers:
-                    is_stale = True
-                    issue_key = f"missing_container_{device_identifier}"
-                    translation_key = "missing_container"
-                    placeholders = {"entity_name": device.name or "unknown"}
+                device_found = device_identifier in current_container_identifiers
+                issue_key = f"missing_container_{device_identifier}"
+                translation_key = "missing_container"
+                placeholders = {"entity_name": device.name or "unknown"}
             elif device.model == "Endpoint":
-                if device_identifier not in current_endpoint_identifiers:
-                    is_stale = True
-                    issue_key = f"missing_endpoint_{device_identifier}"
-                    translation_key = "missing_endpoint"
-                    placeholders = {"entity_id": device.name or "unknown"}
+                device_found = device_identifier in current_endpoint_identifiers
+                issue_key = f"missing_endpoint_{device_identifier}"
+                translation_key = "missing_endpoint"
+                placeholders = {"entity_id": device.name or "unknown"}
             elif device.model == "Stack":
-                if device_identifier not in current_stack_identifiers:
-                    is_stale = True
-                    issue_key = f"missing_stack_{device_identifier}"
-                    translation_key = "missing_stack"
-                    placeholders = {"entity_name": device.name or "unknown"}
+                device_found = device_identifier in current_stack_identifiers
+                issue_key = f"missing_stack_{device_identifier}"
+                translation_key = "missing_stack"
+                placeholders = {"entity_name": device.name or "unknown"}
 
-            if is_stale:
-                async_create_issue(
-                    self.hass,
-                    DOMAIN,
-                    issue_key,
-                    is_fixable=True,
-                    severity=IssueSeverity.WARNING,
-                    translation_key=translation_key,
-                    translation_placeholders=placeholders,
-                    data={"device_id": device.id},
-                )
+            # Map device model to failure tracking key
+            model_key_map = {
+                "Container": "containers",
+                "Endpoint": "endpoints",
+                "Stack": "stacks"
+            }
+            failure_key = model_key_map.get(device.model, device.model.lower() + "s")
+
+            if device_found:
+                # Device is found - clear any existing failure count and delete issues
+                if issue_key in self._consecutive_failures.get(failure_key, {}):
+                    del self._consecutive_failures[failure_key][issue_key]
+                async_delete_issue(self.hass, DOMAIN, issue_key)
             else:
-                # If not stale, delete any existing issue
-                if issue_key:  # Ensure we have a key to delete
-                    async_delete_issue(self.hass, DOMAIN, issue_key)
+                # Device not found - increment failure count
+                failure_dict = self._consecutive_failures[failure_key]
+                failure_count = failure_dict.get(issue_key, 0) + 1
+                failure_dict[issue_key] = failure_count
+
+                # Only create issue after 3 consecutive failures
+                if failure_count >= 3:
+                    async_create_issue(
+                        self.hass,
+                        DOMAIN,
+                        issue_key,
+                        is_fixable=True,
+                        severity=IssueSeverity.WARNING,
+                        translation_key=translation_key,
+                        translation_placeholders=placeholders,
+                        data={"device_id": device.id},
+                    )
         # --- End Repairs Integration ---
 
         return self.raw_data

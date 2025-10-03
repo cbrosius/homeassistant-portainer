@@ -34,6 +34,9 @@ class TestPortainerServices:
         coordinator.name = "Test Portainer"
         coordinator.async_recreate_container = AsyncMock()
         coordinator.async_request_refresh = AsyncMock()
+        coordinator.get_specific_container = Mock()
+        coordinator.api = Mock()
+        coordinator.api.query = AsyncMock()
         return coordinator
 
     @pytest.fixture
@@ -43,9 +46,10 @@ class TestPortainerServices:
         dr.async_get = Mock()
         return dr
 
-    def test_async_register_services(self, mock_hass):
+    @pytest.mark.asyncio
+    async def test_async_register_services(self, mock_hass):
         """Test service registration."""
-        async_register_services(mock_hass)
+        await async_register_services(mock_hass)
 
         # Should register 3 services
         assert mock_hass.services.async_register.call_count == 3
@@ -65,9 +69,10 @@ class TestPortainerServices:
         assert recreate_call[0][0] == "portainer"
         assert recreate_call[0][1] == SERVICE_RECREATE_CONTAINER
 
-    def test_async_unregister_services(self, mock_hass):
+    @pytest.mark.asyncio
+    async def test_async_unregister_services(self, mock_hass):
         """Test service unregistration."""
-        async_unregister_services(mock_hass)
+        await async_unregister_services(mock_hass)
 
         # Should unregister 3 services
         assert mock_hass.services.async_remove.call_count == 3
@@ -96,7 +101,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock hass data
             mock_hass.data = {
@@ -141,7 +148,9 @@ class TestPortainerServices:
     async def test_handle_recreate_container_device_not_found(self, mock_hass):
         """Test container recreation with non-existent device."""
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = None
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=None)
+            mock_dr.async_get.return_value = mock_device_reg
 
             call = Mock()
             call.data = {ATTR_CONTAINER_DEVICES: ["non_existent_device"]}
@@ -167,7 +176,9 @@ class TestPortainerServices:
         device2.id = "device_2"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.side_effect = [device1, device2]
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(side_effect=[device1, device2])
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
                 "portainer": {
@@ -207,7 +218,9 @@ class TestPortainerServices:
         device2.id = "device_2"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.side_effect = [device1, device2]
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(side_effect=[device1, device2])
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock coordinators for both entries
             coordinator1 = Mock()
@@ -248,7 +261,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock API query
             mock_coordinator.api.query = AsyncMock()
@@ -293,7 +308,9 @@ class TestPortainerServices:
             device_entry = Mock()
             device_entry.identifiers = {("portainer", "1_nonexistent")}
             device_entry.config_entries = {"test_entry_id"}
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_coordinator.get_specific_container = Mock(return_value=None)
 
@@ -326,7 +343,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock API query
             mock_coordinator.api.query = AsyncMock()
@@ -334,7 +353,7 @@ class TestPortainerServices:
             # Set up stack data
             mock_coordinator.data = {
                 "stacks": {
-                    "1": {
+                    1: {
                         "Name": "web-stack",
                         "EndpointId": 1
                     }
@@ -457,7 +476,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock API failure
             mock_coordinator.api.query = AsyncMock(side_effect=Exception("API Error"))
@@ -493,7 +514,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
                 "portainer": {
@@ -521,8 +544,10 @@ class TestPortainerServices:
         device_entry.config_entries = {"test_entry_id"}
         device_entry.id = "device_1"
 
-        with patch("custom_components.portainer.services import dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+        with patch("custom_components.portainer.services.dr") as mock_dr:
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
                 "portainer": {
@@ -544,9 +569,10 @@ class TestPortainerServices:
                 "1", "web-server", False
             )
 
-    def test_service_registration_schema_validation(self, mock_hass):
+    @pytest.mark.asyncio
+    async def test_service_registration_schema_validation(self, mock_hass):
         """Test service registration with schema validation."""
-        async_register_services(mock_hass)
+        await async_register_services(mock_hass)
 
         # Check that services were registered with proper schemas
         calls = mock_hass.services.async_register.call_args_list
@@ -574,7 +600,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
                 "portainer": {
@@ -605,7 +633,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             call = Mock()
             call.data = {ATTR_CONTAINER_DEVICES: ["device_1"]}
@@ -625,7 +655,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_coordinator.api.query = AsyncMock()
 
@@ -664,7 +696,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Mock API error
             mock_coordinator.api.query = AsyncMock(side_effect=Exception("API Error"))
@@ -712,7 +746,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_coordinator.api.query = AsyncMock()
             mock_coordinator.get_specific_container = Mock(return_value={
@@ -756,7 +792,9 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             mock_coordinator.api.query = AsyncMock()
             mock_coordinator.data = {
@@ -818,10 +856,12 @@ class TestPortainerServices:
         device_entry.id = "device_1"
 
         with patch("custom_components.portainer.services.dr") as mock_dr:
-            mock_dr.async_get.return_value = device_entry
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
 
             # Coordinator not in hass data
-            mock_hass.data = {"portainer": {}}
+            mock_hass.data = {"portainer": {"missing_entry": {}}}
 
             call = Mock()
             call.data = {ATTR_CONTAINER_DEVICES: ["device_1"]}

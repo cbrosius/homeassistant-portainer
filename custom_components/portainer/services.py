@@ -8,7 +8,7 @@ import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import DOMAIN
 
@@ -96,8 +96,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         return
 
     device_reg = dr.async_get(hass)
+    entity_reg = er.async_get(hass)
 
-    devices_by_config_entry: dict[str, list[str]] = {}
+    devices_by_config_entry: dict[str, list[tuple[str, str]]] = {}
     for device_id in container_device_ids:
         device_entry = device_reg.async_get(device_id)
         if (
@@ -116,15 +117,15 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
             devices_by_config_entry[config_entry_id] = []
 
         identifier = next(iter(device_entry.identifiers))[1]
-        devices_by_config_entry[config_entry_id].append(identifier)
+        devices_by_config_entry[config_entry_id].append((device_id, identifier))
 
-    for config_entry_id, docker_container_ids in devices_by_config_entry.items():
+    for config_entry_id, device_info_list in devices_by_config_entry.items():
         coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
         if not coordinator:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
 
-        for identifier in docker_container_ids:
+        for device_id, identifier in device_info_list:
             try:
                 endpoint_id, container_name = identifier.split("_", 1)
                 # Get the actual container ID from the coordinator data
@@ -151,6 +152,32 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                         container_name,
                         coordinator.name,
                     )
+
+                # If action is "remove", also remove the device and its entities from Home Assistant
+                if action == "remove":
+                    try:
+                        # Remove the device from device registry
+                        device_reg.async_remove_device(device_id)
+                        _LOGGER.debug("Removed device '%s' from device registry", device_id)
+
+                        # Remove all entities for this device
+                        entities_for_device = er.async_entries_for_device(
+                            entity_reg, device_id, include_disabled_entities=True
+                        )
+                        for entity in entities_for_device:
+                            entity_reg.async_remove(entity.entity_id)
+                            _LOGGER.debug("Removed entity '%s' for device '%s'", entity.entity_id, device_id)
+
+                        _LOGGER.info(
+                            "Successfully removed container device '%s' and all its entities from Home Assistant",
+                            device_id,
+                        )
+                    except Exception as device_removal_error:
+                        _LOGGER.error(
+                            "Failed to remove device '%s' and its entities from Home Assistant: %s",
+                            device_id,
+                            device_removal_error,
+                        )
 
             except Exception as e:
                 _LOGGER.error(
@@ -247,8 +274,10 @@ async def async_register_services(hass: HomeAssistant) -> None:
         _handle_perform_container_action,
         schema=vol.Schema(
             {
-                vol.Required(ATTR_ACTION): vol.In(["start", "stop", "restart", "kill"]),
+                vol.Required(ATTR_ACTION): vol.In(["start", "stop", "restart", "kill", "remove"]),
                 vol.Required(ATTR_CONTAINER_DEVICES): vol.All([str], vol.Length(min=1)),
+                vol.Optional("force", default=False): bool,
+                vol.Optional("remove_volumes", default=False): bool,
             }
         ),
     )

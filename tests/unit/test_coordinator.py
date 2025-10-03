@@ -640,3 +640,249 @@ class TestPortainerCoordinator:
         """Test systemstats errored list initialization."""
         assert coordinator._systemstats_errored == []
         assert coordinator.datasets_hass_device_id is None
+
+    def test_get_containers_with_none_container_handling(self, coordinator, mock_api):
+        """Test get containers with None container handling."""
+        # Set up endpoints first
+        mock_api.query.return_value = get_endpoints_response()
+        coordinator.get_endpoints()
+
+        # Create test containers where one is None
+        # Use container names that match the selected containers in the test setup
+        test_containers = [
+            {
+                "Id": "valid123",
+                "Names": ["/web-server"],  # Match selected container
+                "State": "running",
+            },
+            None,  # This should be handled gracefully
+            {
+                "Id": "another456",
+                "Names": ["/database"],  # Match selected container
+                "State": "running",
+            }
+        ]
+
+        # Mock inspect responses for valid containers only
+        def mock_query_side_effect(*args, **kwargs):
+            if "containers/json" in args[0]:
+                return test_containers
+            elif "web-server" in args[0]:
+                return {
+                    "Id": "valid123",
+                    "State": {"Status": "running"},
+                    "HostConfig": {"NetworkMode": "bridge"},
+                    "NetworkSettings": {"Networks": {}},
+                    "Mounts": [],
+                    "Image": "nginx:latest",
+                }
+            elif "database" in args[0]:
+                return {
+                    "Id": "another456",
+                    "State": {"Status": "running"},
+                    "HostConfig": {"NetworkMode": "bridge"},
+                    "NetworkSettings": {"Networks": {}},
+                    "Mounts": [],
+                    "Image": "nginx:latest",
+                }
+            return None
+
+        mock_api.query.side_effect = mock_query_side_effect
+
+        # Should not raise exception despite None container
+        coordinator.get_containers()
+
+        # Should only process valid containers
+        container_keys = list(coordinator.raw_data["containers"].keys())
+        assert len(container_keys) >= 1  # At least one valid container should be processed
+
+    def test_get_containers_with_none_inspect_data_handling(self, coordinator, mock_api):
+        """Test get containers with None inspect data handling."""
+        # Set up endpoints first
+        mock_api.query.return_value = get_endpoints_response()
+        coordinator.get_endpoints()
+
+        # Create test container
+        test_containers = [
+            {
+                "Id": "test123",
+                "Names": ["/web-server"],  # Match selected container
+                "State": "running",
+            }
+        ]
+
+        # Mock None inspect response (API failure)
+        def mock_query_side_effect(*args, **kwargs):
+            if "containers/json" in args[0]:
+                return test_containers
+            else:
+                return None  # Inspect call returns None
+
+        mock_api.query.side_effect = mock_query_side_effect
+
+        # Should not raise exception despite None inspect data
+        coordinator.get_containers()
+
+        # Container should be skipped if inspect fails
+        container_key = "1_test-container"
+        assert container_key not in coordinator.raw_data["containers"]
+
+    def test_health_status_parsing_with_none_checks(self, coordinator, mock_api):
+        """Test health status parsing with proper None checks."""
+        # Set up endpoints first
+        mock_api.query.return_value = get_endpoints_response()
+        coordinator.get_endpoints()
+
+        # Create test container
+        test_containers = [
+            {
+                "Id": "test123",
+                "Names": ["/web-server"],  # Match selected container
+                "State": "running",
+            }
+        ]
+
+        # Mock inspect response with health data
+        def mock_query_side_effect(*args, **kwargs):
+            if "containers/json" in args[0]:
+                return test_containers
+            else:
+                return {
+                    "Id": "test123",
+                    "State": {
+                        "Status": "running",
+                        "Health": {
+                            "Status": "healthy"
+                        }
+                    },
+                    "HostConfig": {
+                        "NetworkMode": "bridge",
+                        "RestartPolicy": {"Name": "always"}
+                    },
+                    "NetworkSettings": {"Networks": {}},
+                    "Mounts": [],
+                    "Image": "nginx:latest",
+                }
+
+        mock_api.query.side_effect = mock_query_side_effect
+
+        # Should parse health status successfully
+        coordinator.get_containers()
+
+        # Check that health status is properly set
+        container_key = "1_web-server"
+        assert container_key in coordinator.raw_data["containers"]
+
+        container = coordinator.raw_data["containers"][container_key]
+        assert "_Custom" in container
+        assert "Health_Status" in container["_Custom"]
+        assert container["_Custom"]["Health_Status"] == "healthy"
+
+    def test_health_status_parsing_with_none_container_properties(self, coordinator, mock_api):
+        """Test health status parsing when container properties are None."""
+        # Set up endpoints first
+        mock_api.query.return_value = get_endpoints_response()
+        coordinator.get_endpoints()
+
+        # Create test container with None properties
+        test_containers = [
+            {
+                "Id": "test123",
+                "Names": ["/web-server"],  # Match selected container
+                "State": "running",
+            }
+        ]
+
+        # Mock inspect response with missing optional data
+        def mock_query_side_effect(*args, **kwargs):
+            if "containers/json" in args[0]:
+                return test_containers
+            else:
+                return {
+                    "Id": "test123",
+                    "State": {
+                        "Status": "running",
+                        "Health": {
+                            "Status": "unhealthy"
+                        }
+                    },
+                    "HostConfig": {
+                        "NetworkMode": "bridge",
+                        "RestartPolicy": {"Name": "always"}
+                    },
+                    "NetworkSettings": {"Networks": {}},
+                    "Mounts": [],
+                    "Image": "nginx:latest",
+                }
+
+        mock_api.query.side_effect = mock_query_side_effect
+
+        # Should handle None properties gracefully
+        coordinator.get_containers()
+
+        # Check that container is processed despite None handling
+        container_key = "1_web-server"
+        assert container_key in coordinator.raw_data["containers"]
+
+        container = coordinator.raw_data["containers"][container_key]
+        assert container is not None
+        assert "State" in container
+        assert "_Custom" in container
+
+    def test_container_processing_with_mixed_none_and_valid_data(self, coordinator, mock_api):
+        """Test container processing with mix of None and valid data."""
+        # Set up endpoints first
+        mock_api.query.return_value = get_endpoints_response()
+        coordinator.get_endpoints()
+
+        # Create test containers with mixed None and valid data
+        test_containers = [
+            None,  # None container should be skipped
+            {
+                "Id": "valid123",
+                "Names": ["/valid-container"],
+                "State": "running",
+            },
+            {
+                "Id": "another456",
+                "Names": ["/another-container"],
+                "State": "stopped",  # Non-running container
+            }
+        ]
+
+        # Mock inspect responses for valid containers
+        inspect_responses = [
+            {
+                "Id": "valid123",
+                "State": {"Status": "running", "Health": {"Status": "healthy"}},
+                "HostConfig": {"NetworkMode": "bridge"},
+                "NetworkSettings": {"Networks": {}},
+                "Mounts": [],
+                "Image": "nginx:latest",
+            },
+            {
+                "Id": "another456",
+                "State": {"Status": "exited"},
+                "HostConfig": {"NetworkMode": "bridge"},
+                "NetworkSettings": {"Networks": {}},
+                "Mounts": [],
+                "Image": "nginx:latest",
+            }
+        ]
+
+        mock_api.query.side_effect = [test_containers] + inspect_responses
+
+        # Should process successfully despite None values
+        coordinator.get_containers()
+
+        # Should have processed valid containers
+        container_keys = list(coordinator.raw_data["containers"].keys())
+        assert len(container_keys) >= 1
+
+        # Check that valid container has proper health status
+        valid_container_key = "1_valid-container"
+        if valid_container_key in coordinator.raw_data["containers"]:
+            container = coordinator.raw_data["containers"][valid_container_key]
+            assert "_Custom" in container
+            assert "Health_Status" in container["_Custom"]
+            assert container["_Custom"]["Health_Status"] == "healthy"

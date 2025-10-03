@@ -38,7 +38,7 @@ The endpoint device provides key details and sensors, including:
     *   Reachability status
     *   Counts for unhealthy and stopped containers
     *   Totals for images, volumes, and stacks
- 
+
 ![Endpoints](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/endpoints.png)
 
 ## Containers
@@ -48,13 +48,13 @@ The container device provides a central place to monitor its status and details.
 
 *   **State Sensor**: The primary sensor shows the container's current state (e.g., `running`, `stopped`, `exited`). For running containers with a health check, the state will be more descriptive (e.g., `running (healthy)`).
 *   **Detail Sensors**: Additional sensors are created to provide more granular information, such as:
-    *   IP Address
-    *   Published Ports
-    *   Image ID
-    *   Start Time and Creation Date
-    *   Compose Stack and Service names (if applicable)
-    *   Health Status (if enabled)
-    *   Restart Policy (if enabled)
+     *   IP Address
+     *   Published Ports
+     *   Image ID
+     *   Start Time and Creation Date
+     *   Compose Stack and Service names (if applicable)
+     *   Health Status (enabled by default)
+     *   Restart Policy (enabled by default)
 *   **Controls**: You can control the container directly from Home Assistant using the `portainer.perform_container_action` service. This allows you to `start`, `stop`, `restart`, or `kill` one or more containers, which is perfect for automations and scripts.
 
 ![Containers](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/containers.png)
@@ -121,7 +121,27 @@ data:
 
 As an alternative, you can use the UI to perform this action.
 
-![Perform Container Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/stack_action.png)
+![Perform Stack Action](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/stack_action.png)
+
+## `portainer.recreate_container`
+This service allows you to recreate a container, which stops the container, removes it, and starts a new one with the same configuration. Optionally pulls the latest image before recreating.
+
+### Service Data Attributes:
+*   **`container_devices`** (Required): A list of Home Assistant device IDs corresponding to the containers you wish to recreate.
+*   **`pull_image`** (Optional): Whether to pull the latest image before recreating the container. Defaults to `true`.
+
+### Example Usage:
+To recreate a specific container using this service in a Home Assistant automation or script:
+
+```yaml
+service: portainer.recreate_container
+data:
+  container_devices:
+    - device_id: a0e2c2f2e7b1a4d5c6f7e8d9c0b1a2c3 # Replace with your container's device_id
+  pull_image: true
+```
+
+As an alternative, you can use the UI to perform this action.
 
 
 # Install integration
@@ -151,27 +171,82 @@ After restarting, you can proceed with getting your access token and setting up 
 Setup this integration for your Portainer in Home Assistant via `Configuration -> Integrations -> Add -> Portainer`.
 You can add this integration several times for different portainer instances.
 
-* "Name of the integration" - Friendly name for this Portainer instance
-* "Host" - Use hostname or IP and port (example: portainer.domain.tld or 192.168.0.2:9000)
-* "Access token" - Use access token from previous step
-* "Use SSL" - Connect to portainer using SSL
-* "Verify SSL certificate" - Validate SSL certificate (must be trusted certificate)
+The setup process includes the following steps:
+
+1. **Initial Configuration**: Enter your Portainer instance details
+   * "Name of the integration" - Friendly name for this Portainer instance
+   * "Host" - Use hostname or IP and port (example: portainer.domain.tld or 192.168.0.2:9000)
+   * "Access token" - Use access token from previous step
+   * "Use SSL" - Connect to portainer using SSL
+   * "Verify SSL certificate" - Validate SSL certificate (must be trusted certificate)
+
+2. **Endpoint Selection**: Choose which Portainer endpoints to monitor
+
+3. **Container & Stack Selection**: Select specific containers and stacks to track
+
+All features (health check sensors, restart policy sensors, and action buttons) are automatically enabled for the best experience. No additional configuration steps are required.
 
 ## Configuration
-When setup is done, it is possilbe to cunfigure custom attibutes for each entry via `Configuration -> Integrations -> Portainer -> Configure`.
+The integration automatically enables all features by default for the best user experience:
 
-List of supported custom attibutes:
+* **Health Check Sensors** - Monitor container health status from Docker health checks
+* **Restart Policy Sensors** - Display container restart policies
+* **Action Buttons** - Provide start/stop/restart/kill buttons for containers and stacks
 
-* "Health check" - Checks if the container is running correctly by executing a defined command.
-* "Restart policy" - Defines how and when the container restarts after stopping.
+No additional configuration is required - all features are enabled automatically. If you need to modify endpoint, container, or stack selections, use `Configuration -> Integrations -> Portainer -> Configure`.
 
 ![Configuration](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/options.png)
 
-## Enabling debug
-To enable debug for Portainer integration, add following to your configuration.yaml:
-```
+## Advanced Features
+
+### Smart Repair Issue Management
+The integration includes intelligent repair issue management to prevent false positives during container startup:
+
+* **Consecutive Failure Tracking**: Repair issues are only created after 3 consecutive failures
+* **Automatic Recovery**: When devices are found again, failure counters are cleared and issues are automatically resolved
+* **Startup Safety**: Temporary API unavailability during container startup won't trigger repair issues
+
+This ensures you only see repair issues for genuine persistent problems, not temporary startup conditions.
+
+### Health Status Intelligence
+* **Multi-State Support**: Health sensors show `healthy`, `unhealthy`, `starting`, or `unavailable` states
+* **Container State Awareness**: Non-running containers show `unavailable` health status (since health checks don't apply)
+* **Docker Integration**: Pulls health status directly from Docker's health check system
+
+## Troubleshooting
+
+### Common Issues
+
+**Containers not appearing in Home Assistant:**
+* Verify the container is selected during integration setup
+* Check that the Portainer endpoint is reachable and has status "Up"
+* Review Home Assistant logs for connection errors
+
+**Health status showing "unknown":**
+* Ensure the container has Docker health checks configured
+* Check that the container is in "running" state
+* Verify Portainer API connectivity
+
+**Repair issues appearing:**
+* These only appear after 3 consecutive failures (not temporary issues)
+* Check Portainer server connectivity
+* Verify container/endpoints still exist in Portainer
+
+**Action buttons not working:**
+* Ensure the integration has action buttons enabled (default: enabled)
+* Check that the target container/endpoint is reachable
+* Verify user permissions in Portainer
+
+### Debug Logging
+To enable debug logging for troubleshooting, add the following to your `configuration.yaml`:
+```yaml
 logger:
   default: info
   logs:
     custom_components.portainer: debug
 ```
+
+### Getting Help
+* Check the [GitHub Issues](https://github.com/cbrosius/homeassistant-portainer/issues) page for known issues
+* Enable debug logging and check Home Assistant logs for detailed error messages
+* Verify your Portainer instance is accessible and your access token is valid

@@ -67,7 +67,9 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
             try:
                 # Identifier format: {config_entry_id}_{endpoint_id}_{name}
                 # Remove config_entry_id prefix to get endpoint_id and container_name
-                identifier_without_config = identifier.replace(f"{config_entry_id}_", "", 1)
+                identifier_without_config = identifier.replace(
+                    f"{config_entry_id}_", "", 1
+                )
                 endpoint_id, container_name = identifier_without_config.split("_", 1)
                 await coordinator.async_recreate_container(
                     endpoint_id, container_name, pull_image
@@ -132,7 +134,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
             try:
                 # Identifier format: {config_entry_id}_{endpoint_id}_{name}
                 # Remove config_entry_id prefix to get endpoint_id and container_name
-                identifier_without_config = identifier.replace(f"{config_entry_id}_", "", 1)
+                identifier_without_config = identifier.replace(
+                    f"{config_entry_id}_", "", 1
+                )
                 endpoint_id, container_name = identifier_without_config.split("_", 1)
                 # Get the actual container ID from the coordinator data
                 container = coordinator.get_specific_container(
@@ -300,7 +304,11 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                     coordinator.name,
                 )
             except Exception as e:
-                stack_name = stack_data.get("Name", stack_id) if 'stack_data' in locals() else stack_id
+                stack_name = (
+                    stack_data.get("Name", stack_id)
+                    if "stack_data" in locals()
+                    else stack_id
+                )
                 _LOGGER.error(
                     "Failed to perform '%s' on stack '%s' on instance '%s': %s",
                     action,

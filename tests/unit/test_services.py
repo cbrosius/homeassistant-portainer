@@ -304,7 +304,7 @@ class TestPortainerServices:
                 mock_coordinator.api.query,
                 "endpoints/1/docker/containers/abc123def456/start",
                 "POST",
-                {}
+                {},
             )
             mock_coordinator.async_request_refresh.assert_called_once()
 
@@ -325,7 +325,9 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             # Mock the synchronous API query method
-            mock_coordinator.api.query = Mock(return_value=None)  # Sync method returns None
+            mock_coordinator.api.query = Mock(
+                return_value=None
+            )  # Sync method returns None
 
             mock_hass.data = {
                 "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
@@ -356,7 +358,7 @@ class TestPortainerServices:
                 mock_coordinator.api.query,
                 "endpoints/1/docker/containers/test123456789/stop",
                 "POST",
-                {}
+                {},
             )
 
     @pytest.mark.asyncio
@@ -409,7 +411,9 @@ class TestPortainerServices:
 
             # Mock API query (synchronous method) - returns stack data for stack lookup
             def mock_query(*args, **kwargs):
-                if "stacks/1" in args[0] and len(args) == 1:  # First call gets stack data
+                if (
+                    "stacks/1" in args[0] and len(args) == 1
+                ):  # First call gets stack data
                     return {"Id": 1, "Name": "web-stack", "EndpointId": 1}
                 else:  # Second call is the action (POST)
                     return None

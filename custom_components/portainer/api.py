@@ -42,7 +42,7 @@ class PortainerAPI(object):
             _LOGGER.warning(
                 "SSL certificate verification is disabled for HTTPS connection to %s. "
                 "This may pose a security risk. Ensure you trust this host.",
-                self._host
+                self._host,
             )
             # Suppress the InsecureRequestWarning from urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

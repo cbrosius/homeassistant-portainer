@@ -106,6 +106,7 @@ class TestPortainerAPI:
         mock_response.status_code = 500
         mock_response.content = json.dumps(get_error_response_500()).encode()
         mock_response.json.return_value = get_error_response_500()
+        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
         mock_session.get.return_value = mock_response
 
         api._session = mock_session
@@ -251,7 +252,7 @@ class TestPortainerAPI:
         result = api.query("endpoints")
 
         assert result is None
-        assert api._error == "no_response"
+        assert api._error == "invalid_json"
         assert api._connected is False
 
     def test_query_empty_content(self, api, mock_session):
@@ -496,12 +497,13 @@ class TestPortainerAPI:
 
         api._session = mock_session
 
-        with patch.object(api.lock, 'acquire'), patch.object(api.lock, 'release'):
+        # Mock the lock object itself to verify acquire/release are called
+        with patch.object(api, 'lock') as mock_lock:
             result = api.query("endpoints")
 
             assert result == get_endpoints_response()
-            api.lock.acquire.assert_called_once()
-            api.lock.release.assert_called_once()
+            mock_lock.acquire.assert_called_once()
+            mock_lock.release.assert_called_once()
 
     def test_query_lock_timeout(self, api, mock_session):
         """Test query lock acquisition timeout."""
@@ -513,8 +515,12 @@ class TestPortainerAPI:
 
         api._session = mock_session
 
-        with patch.object(api.lock, 'acquire', side_effect=Exception("Lock timeout")):
+        # Mock the lock object to simulate acquire timeout
+        with patch.object(api, 'lock') as mock_lock:
+            mock_lock.acquire.side_effect = Exception("Lock timeout")
+
             result = api.query("endpoints")
 
             assert result is None
-            assert api._error == "no_response"
+            assert api._error == "lock_error"
+            mock_lock.acquire.assert_called_once()

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from custom_components.portainer.entity import PortainerEntity, async_create_sensors
 from custom_components.portainer.coordinator import PortainerCoordinator
+from custom_components.portainer.const import ATTRIBUTION
 from unittest.mock import Mock
 
 
@@ -27,7 +28,7 @@ class TestPortainerEntity:
         coordinator.name = "Test Portainer"
         coordinator.config_entry = Mock()
         coordinator.config_entry.entry_id = "test_entry_id"
-        coordinator.config_entry.data = {"name": "Test Portainer"}
+        coordinator.config_entry.data = {"name": "Test Portainer", "host": "localhost", "ssl": False}
         coordinator.data = {
             "containers": {
                 "1_web-server": {
@@ -93,7 +94,7 @@ class TestPortainerEntity:
         assert entity.manufacturer == "Docker"
         assert entity.sw_version == ""
         assert entity._attr_has_entity_name is True
-        assert "Data provided by Portainer" in entity._attr_extra_state_attributes
+        assert ATTRIBUTION in entity._attr_extra_state_attributes["attribution"]
 
     def test_entity_initialization_no_uid(self, mock_coordinator, mock_description):
         """Test entity initialization without uid."""
@@ -271,7 +272,7 @@ class TestPortainerEntity:
         """Test entity extra state attributes."""
         attributes = entity.extra_state_attributes
 
-        assert "Data provided by Portainer" in attributes
+        assert ATTRIBUTION in attributes["attribution"]
         assert attributes["State"] == "running"
         assert attributes["Status"] == "Up 2 hours"
 
@@ -295,6 +296,8 @@ class TestPortainerEntity:
 
         attributes = entity.extra_state_attributes
 
+        assert "Health Status" in attributes
+        assert "Restart Policy" in attributes
         assert attributes["Health Status"] == "healthy"
         assert attributes["Restart Policy"] == "always"
 
@@ -304,6 +307,9 @@ class TestPortainerEntity:
 
     def test_entity_handle_coordinator_update_success(self, entity, mock_coordinator):
         """Test coordinator update handling success."""
+        # Set up hass attribute for the entity
+        entity.hass = Mock()
+
         # Change some data
         mock_coordinator.data["containers"]["1_web-server"]["State"] = "stopped"
 
@@ -351,22 +357,23 @@ class TestPortainerEntity:
             assert result == "fallback_id"
             mock_get_entry.assert_called_once()
 
-    def test_entity_action_methods_not_implemented(self, entity):
+    @pytest.mark.asyncio
+    async def test_entity_action_methods_not_implemented(self, entity):
         """Test that action methods are not implemented."""
         with pytest.raises(NotImplementedError):
-            entity.start()
+            await entity.start()
 
         with pytest.raises(NotImplementedError):
-            entity.stop()
+            await entity.stop()
 
         with pytest.raises(NotImplementedError):
-            entity.restart()
+            await entity.restart()
 
         with pytest.raises(NotImplementedError):
-            entity.reload()
+            await entity.reload()
 
         with pytest.raises(NotImplementedError):
-            entity.snapshot()
+            await entity.snapshot()
 
 
 class TestAsyncCreateSensors:
@@ -384,6 +391,7 @@ class TestAsyncCreateSensors:
         coordinator.hass = mock_hass
         coordinator.config_entry = Mock()
         coordinator.config_entry.entry_id = "test_entry_id"
+        coordinator.config_entry.data = {"name": "Test Portainer", "host": "localhost", "ssl": False}
         coordinator.data = {
             "containers": {
                 "1_web-server": {
@@ -625,8 +633,14 @@ class TestAsyncCreateSensors:
         # Should create entities for each valid description
         assert len(entities) == 3  # 1 container + 1 endpoint + 1 stack
 
-    def test_entity_state_attributes_formatting(self, entity):
+    def test_entity_state_attributes_formatting(self, mock_coordinator, mock_description):
         """Test that state attributes are properly formatted."""
+        entity = PortainerEntity(
+            coordinator=mock_coordinator,
+            description=mock_description,
+            uid="1_web-server"
+        )
+
         # Mock the format_attribute function
         with patch("custom_components.portainer.entity.format_attribute") as mock_format:
             mock_format.side_effect = lambda x: x.replace("_", " ").title()

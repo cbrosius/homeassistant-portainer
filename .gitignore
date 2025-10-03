@@ -2,3 +2,8 @@
 .vscode/settings.json
 .sonarlint/connectedMode.json
 GEMINI.md
+config/*
+__pycache__
+**/__pycache__
+*.pyc
+!config/configuration.yaml

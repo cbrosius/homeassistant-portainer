@@ -2,6 +2,7 @@
 
 import json
 import requests
+import urllib3
 from logging import getLogger
 from threading import Lock
 from typing import Any, List, Optional
@@ -37,6 +38,14 @@ class PortainerAPI(object):
         self._url = f"{self._protocol}://{self._host}/api/"
         self._session.headers.update({"X-API-Key": self._api_key})
         self._session.verify = self._verify_ssl
+        if not self._verify_ssl and self._use_ssl:
+            _LOGGER.warning(
+                "SSL certificate verification is disabled for HTTPS connection to %s. "
+                "This may pose a security risk. Ensure you trust this host.",
+                self._host
+            )
+            # Suppress the InsecureRequestWarning from urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.lock = Lock()
         self._connected = False
         self._error = ""

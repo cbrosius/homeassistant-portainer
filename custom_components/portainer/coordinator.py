@@ -86,6 +86,14 @@ class PortainerCoordinator(DataUpdateCoordinator):
             config_entry.data[CONF_VERIFY_SSL],
         )
 
+        # Log SSL configuration for debugging
+        _LOGGER.debug(
+            "Portainer SSL config: host=%s, use_ssl=%s, verify_ssl=%s",
+            config_entry.data[CONF_HOST],
+            config_entry.data[CONF_SSL],
+            config_entry.data[CONF_VERIFY_SSL],
+        )
+
         self._systemstats_errored = []
         self.datasets_hass_device_id = None
 
@@ -632,22 +640,23 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self, endpoint_id: str, container_name: str
     ) -> dict | None:
         """Retrieve details for a specific container by its ID."""
-        for container in self.data["containers"].values():
-            if (
-                container.get("EndpointId") == endpoint_id
-                and container.get("Name") == container_name
-            ):
-                return container
-        return None
+        # Look for container in flat structure using the key format: "endpointId_containerName"
+        container_key = f"{endpoint_id}_{container_name}"
+        return self.data["containers"].get(container_key)
 
     def get_container_name(self, endpoint_id: str, container_id: str) -> str | None:
         """Retrieve container name by endpoint_id and container_id."""
-        for container in self.data.get("containers", {}).values():
-            if (
-                container.get("EndpointId") == endpoint_id
-                and container.get("Id") == container_id
-            ):
+        # First try to find by container_id in the flat structure
+        for key, container in self.data.get("containers", {}).items():
+            if container.get("Id") == container_id:
                 return container.get("Name")
+
+        # Fallback: try to find by endpoint_id and container_id combination
+        container_key = f"{endpoint_id}_{container_id}"
+        container = self.data["containers"].get(container_key)
+        if container:
+            return container.get("Name")
+
         return None
 
     def _create_endpoint_devices(self) -> None:

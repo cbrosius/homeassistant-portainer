@@ -36,7 +36,7 @@ class TestPortainerServices:
         coordinator.async_request_refresh = AsyncMock()
         coordinator.get_specific_container = Mock()
         coordinator.api = Mock()
-        coordinator.api.query = AsyncMock()
+        coordinator.api.query = Mock()
         return coordinator
 
     @pytest.fixture
@@ -273,8 +273,8 @@ class TestPortainerServices:
             mock_device_reg.async_get = Mock(return_value=device_entry)
             mock_dr.async_get.return_value = mock_device_reg
 
-            # Mock API query
-            mock_coordinator.api.query = AsyncMock()
+            # Mock API query (synchronous method)
+            mock_coordinator.api.query = Mock()
 
             mock_hass.data = {
                 "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
@@ -299,11 +299,65 @@ class TestPortainerServices:
 
             await _handle_perform_container_action(call)
 
-            # Verify API call was made
-            mock_coordinator.api.query.assert_called_once_with(
-                "endpoints/1/docker/containers/abc123def456/start", "POST", {}
+            # Verify async_add_executor_job was called to wrap the sync API call
+            mock_hass.async_add_executor_job.assert_called_once_with(
+                mock_coordinator.api.query,
+                "endpoints/1/docker/containers/abc123def456/start",
+                "POST",
+                {}
             )
             mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_perform_container_action_uses_async_executor_job(
+        self, mock_hass, mock_coordinator
+    ):
+        """Test that container actions properly use async_add_executor_job for sync API calls."""
+        # This test specifically verifies the fix for the async handling issue
+        device_entry = Mock()
+        device_entry.identifiers = {("portainer", "1_test-container")}
+        device_entry.config_entries = {"test_entry_id"}
+        device_entry.id = "device_1"
+
+        with patch("custom_components.portainer.services.dr") as mock_dr:
+            mock_device_reg = Mock()
+            mock_device_reg.async_get = Mock(return_value=device_entry)
+            mock_dr.async_get.return_value = mock_device_reg
+
+            # Mock the synchronous API query method
+            mock_coordinator.api.query = Mock(return_value=None)  # Sync method returns None
+
+            mock_hass.data = {
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
+            }
+
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "test123456789",
+                    "Name": "test-container",
+                    "EndpointId": "1",
+                }
+            )
+
+            call = Mock()
+            call.data = {ATTR_ACTION: "stop", ATTR_CONTAINER_DEVICES: ["device_1"]}
+            call.hass = mock_hass
+
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
+            # This should not raise "object NoneType can't be used in 'await' expression"
+            # because we're properly using async_add_executor_job
+            await _handle_perform_container_action(call)
+
+            # Verify that async_add_executor_job was called with the correct parameters
+            mock_hass.async_add_executor_job.assert_called_once_with(
+                mock_coordinator.api.query,
+                "endpoints/1/docker/containers/test123456789/stop",
+                "POST",
+                {}
+            )
 
     @pytest.mark.asyncio
     async def test_handle_perform_container_action_container_not_found(
@@ -353,8 +407,8 @@ class TestPortainerServices:
             mock_device_reg.async_get = Mock(return_value=device_entry)
             mock_dr.async_get.return_value = mock_device_reg
 
-            # Mock API query
-            mock_coordinator.api.query = AsyncMock()
+            # Mock API query (synchronous method)
+            mock_coordinator.api.query = Mock()
 
             # Set up stack data
             mock_coordinator.data = {
@@ -375,9 +429,12 @@ class TestPortainerServices:
 
             await _handle_perform_stack_action(call)
 
-            # Verify API call was made
-            mock_coordinator.api.query.assert_called_once_with(
-                "stacks/1/start?endpointId=1", "POST", {}
+            # Verify async_add_executor_job was called to wrap the sync API call
+            mock_hass.async_add_executor_job.assert_called_once_with(
+                mock_coordinator.api.query,
+                "stacks/1/start?endpointId=1",
+                "POST",
+                {}
             )
             mock_coordinator.async_request_refresh.assert_called_once()
 
@@ -486,7 +543,7 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             # Mock API failure
-            mock_coordinator.api.query = AsyncMock(side_effect=Exception("API Error"))
+            mock_coordinator.api.query = Mock(side_effect=Exception("API Error"))
             mock_coordinator.get_specific_container = Mock(
                 return_value={
                     "Id": "abc123def456",
@@ -898,8 +955,8 @@ class TestPortainerServices:
             mock_device_reg.async_get = Mock(return_value=device_entry)
             mock_dr.async_get.return_value = mock_device_reg
 
-            # Mock API query
-            mock_coordinator.api.query = AsyncMock()
+            # Mock API query (synchronous method)
+            mock_coordinator.api.query = Mock()
 
             mock_hass.data = {
                 "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}

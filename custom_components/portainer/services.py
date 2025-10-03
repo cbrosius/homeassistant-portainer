@@ -65,7 +65,10 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
 
         for identifier in docker_container_ids:
             try:
-                endpoint_id, container_name = identifier.split("_", 1)
+                # Identifier format: {config_entry_id}_{endpoint_id}_{name}
+                # Remove config_entry_id prefix to get endpoint_id and container_name
+                identifier_without_config = identifier.replace(f"{config_entry_id}_", "", 1)
+                endpoint_id, container_name = identifier_without_config.split("_", 1)
                 await coordinator.async_recreate_container(
                     endpoint_id, container_name, pull_image
                 )
@@ -127,7 +130,10 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
 
         for device_id, identifier in device_info_list:
             try:
-                endpoint_id, container_name = identifier.split("_", 1)
+                # Identifier format: {config_entry_id}_{endpoint_id}_{name}
+                # Remove config_entry_id prefix to get endpoint_id and container_name
+                identifier_without_config = identifier.replace(f"{config_entry_id}_", "", 1)
+                endpoint_id, container_name = identifier_without_config.split("_", 1)
                 # Get the actual container ID from the coordinator data
                 container = coordinator.get_specific_container(
                     endpoint_id, container_name
@@ -141,10 +147,26 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                     continue
 
                 container_id = container.get("Id")
+                if not container_id:
+                    _LOGGER.error(
+                        "Container '%s' on endpoint '%s' does not have a valid ID",
+                        container_name,
+                        endpoint_id,
+                    )
+                    continue
+
                 service_path = (
                     f"endpoints/{endpoint_id}/docker/containers/{container_id}/{action}"
                 )
-                await coordinator.api.query(service_path, "POST", {})
+                _LOGGER.debug(
+                    "Performing '%s' action on container ID '%s' via path '%s'",
+                    action,
+                    container_id,
+                    service_path,
+                )
+                await call.hass.async_add_executor_job(
+                    coordinator.api.query, service_path, "POST", {}
+                )
                 if container_name:
                     _LOGGER.info(
                         "Successfully performed '%s' on container '%s' on instance '%s'",
@@ -228,8 +250,11 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             devices_by_config_entry[config_entry_id] = []
 
         identifier = next(iter(device_entry.identifiers))[1]
-        if identifier.startswith("stack_"):
-            stack_id_str = identifier.replace("stack_", "")
+        # Identifier format: {config_entry_id}_stack_{stack_id}
+        # Remove config_entry_id prefix to get stack_{stack_id}
+        identifier_without_config = identifier.replace(f"{config_entry_id}_", "", 1)
+        if identifier_without_config.startswith("stack_"):
+            stack_id_str = identifier_without_config.replace("stack_", "")
             if stack_id_str.isdigit():
                 devices_by_config_entry[config_entry_id].append(stack_id_str)
 
@@ -253,7 +278,9 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
 
             try:
-                await coordinator.api.query(service_path, "POST", {})
+                await call.hass.async_add_executor_job(
+                    coordinator.api.query, service_path, "POST", {}
+                )
                 _LOGGER.info(
                     "Successfully performed '%s' on stack '%s' on instance '%s'",
                     action,

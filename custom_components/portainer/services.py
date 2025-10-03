@@ -265,16 +265,27 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
             continue
 
         for stack_id in stack_ids:
-            stack_data = coordinator.data.get("stacks", {}).get(int(stack_id))
-            if not stack_data:
+            # Get stack data from API directly, not just from selected stacks
+            try:
+                stack_data = await call.hass.async_add_executor_job(
+                    coordinator.api.query, f"stacks/{stack_id}"
+                )
+                if not stack_data:
+                    _LOGGER.warning(
+                        "Stack ID '%s' not found in Portainer API for instance '%s'. Skipping.",
+                        stack_id,
+                        coordinator.name,
+                    )
+                    continue
+                endpoint_id = stack_data.get("EndpointId")
+            except Exception as e:
                 _LOGGER.warning(
-                    "Stack ID '%s' not found in Portainer data for instance '%s'. Skipping.",
+                    "Failed to get stack data for ID '%s' from Portainer API: %s. Skipping.",
                     stack_id,
-                    coordinator.name,
+                    e,
                 )
                 continue
 
-            endpoint_id = stack_data.get("EndpointId")
             service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
 
             try:

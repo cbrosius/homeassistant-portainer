@@ -407,13 +407,14 @@ class TestPortainerServices:
             mock_device_reg.async_get = Mock(return_value=device_entry)
             mock_dr.async_get.return_value = mock_device_reg
 
-            # Mock API query (synchronous method)
-            mock_coordinator.api.query = Mock()
+            # Mock API query (synchronous method) - returns stack data for stack lookup
+            def mock_query(*args, **kwargs):
+                if "stacks/1" in args[0] and len(args) == 1:  # First call gets stack data
+                    return {"Id": 1, "Name": "web-stack", "EndpointId": 1}
+                else:  # Second call is the action (POST)
+                    return None
 
-            # Set up stack data
-            mock_coordinator.data = {
-                "stacks": {1: {"Name": "web-stack", "EndpointId": 1}}
-            }
+            mock_coordinator.api.query = Mock(side_effect=mock_query)
 
             mock_hass.data = {
                 "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
@@ -429,13 +430,17 @@ class TestPortainerServices:
 
             await _handle_perform_stack_action(call)
 
-            # Verify async_add_executor_job was called to wrap the sync API call
-            mock_hass.async_add_executor_job.assert_called_once_with(
-                mock_coordinator.api.query,
-                "stacks/1/start?endpointId=1",
-                "POST",
-                {}
-            )
+            # Verify async_add_executor_job was called twice:
+            # 1. To get stack data
+            # 2. To perform the action
+            assert mock_hass.async_add_executor_job.call_count == 2
+            # Check that the first call was to get stack data
+            first_call = mock_hass.async_add_executor_job.call_args_list[0]
+            assert "stacks/1" in first_call[0][1]  # URL contains stacks/1
+            # Check that the second call was to perform the action
+            second_call = mock_hass.async_add_executor_job.call_args_list[1]
+            assert "stacks/1/start" in second_call[0][1]  # URL contains stacks/1/start
+            assert second_call[0][2] == "POST"  # Method is POST
             mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio

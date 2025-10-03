@@ -272,7 +272,7 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                 )
                 if not stack_data:
                     _LOGGER.warning(
-                        "Stack ID '%s' not found in Portainer API for instance '%s'. Skipping.",
+                        "Stack '%s' not found in Portainer API for instance '%s'. Skipping.",
                         stack_id,
                         coordinator.name,
                     )
@@ -280,7 +280,7 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                 endpoint_id = stack_data.get("EndpointId")
             except Exception as e:
                 _LOGGER.warning(
-                    "Failed to get stack data for ID '%s' from Portainer API: %s. Skipping.",
+                    "Failed to get stack data for '%s' from Portainer API: %s. Skipping.",
                     stack_id,
                     e,
                 )
@@ -292,17 +292,19 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                 await call.hass.async_add_executor_job(
                     coordinator.api.query, service_path, "POST", {}
                 )
+                stack_name = stack_data.get("Name", stack_id)
                 _LOGGER.info(
                     "Successfully performed '%s' on stack '%s' on instance '%s'",
                     action,
-                    stack_id,
+                    stack_name,
                     coordinator.name,
                 )
             except Exception as e:
+                stack_name = stack_data.get("Name", stack_id) if 'stack_data' in locals() else stack_id
                 _LOGGER.error(
                     "Failed to perform '%s' on stack '%s' on instance '%s': %s",
                     action,
-                    stack_id,
+                    stack_name,
                     coordinator.name,
                     e,
                 )

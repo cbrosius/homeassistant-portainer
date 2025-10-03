@@ -1,0 +1,65 @@
+# Test configuration for Home Assistant Portainer integration
+homeassistant:
+  name: "Test Home Assistant"
+  latitude: 32.87336
+  longitude: -117.22743
+  elevation: 0
+  time_zone: "UTC"
+  units: "metric"
+
+  allowlist_external_dirs: []
+
+# Enable debug logging for tests
+logger:
+  default: "debug"
+  logs:
+    custom_components.portainer: "debug"
+    tests: "debug"
+
+# HTTP configuration for testing
+http:
+  server_host: "127.0.0.1"
+  server_port: 8123
+  trusted_proxies: []
+
+# Portainer integration configuration
+portainer:
+  - platform: portainer
+    host: "http://localhost:9000"
+    username: "test_user"
+    password: "test_password"
+    verify_ssl: false
+    scan_interval: 30
+
+# Additional test platforms
+sensor:
+  - platform: portainer
+    endpoint_id: 1
+
+button:
+  - platform: portainer
+    endpoint_id: 1
+
+# Automation for testing
+automation:
+  - alias: "Test Portainer Automation"
+    trigger:
+      - platform: state
+        entity_id: sensor.portainer_containers_running
+        to: "2"
+    action:
+      - service: persistent_notification.create
+        data:
+          message: "Portainer containers changed to 2 running"
+          title: "Portainer Status"
+
+# Script for testing
+script:
+  test_portainer_restart:
+    alias: "Test Portainer Restart"
+    sequence:
+      - service: button.press
+        target:
+          entity_id: button.portainer_restart_container
+        data:
+          container_id: "test_container_id"

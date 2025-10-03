@@ -335,12 +335,16 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     ensure_vals=[
                         {"name": "Name", "default": "unknown"},
                         {"name": "EndpointId", "default": eid},
-                        {"name": CUSTOM_ATTRIBUTE_ARRAY, "default": None},
+                        {"name": CUSTOM_ATTRIBUTE_ARRAY, "default": {}},
                     ],
                 )
                 # Only keep selected containers and then process them
                 for cid in list(all_containers.keys()):
                     container = all_containers[cid]
+
+                    # Skip if container is None
+                    if container is None:
+                        continue
 
                     # Safely extract container name from Names array
                     try:
@@ -373,7 +377,13 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     container["Environment"] = self.raw_data["endpoints"][eid]["Name"]
                     container["ConfigEntryId"] = self.config_entry_id
-                    container[CUSTOM_ATTRIBUTE_ARRAY] = {}
+
+                    # Initialize custom attributes array for feature data
+                    if (
+                        container is not None
+                        and CUSTOM_ATTRIBUTE_ARRAY not in container
+                    ):
+                        container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 
                     # Format Published Ports
                     ports_list = []
@@ -403,9 +413,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             "GET",
                             {"all": True},
                         )
-                        if not inspect_data_raw:
+                        if not inspect_data_raw or not isinstance(
+                            inspect_data_raw, dict
+                        ):
                             _LOGGER.warning(
-                                "Container %s on endpoint %s inspection returned no data, skipping",
+                                "Container %s on endpoint %s inspection returned no data or invalid format, skipping",
                                 container.get("Name", cid),
                                 eid,
                             )
@@ -421,49 +433,53 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         del all_containers[cid]
                         continue
 
-                    self.raw_data["containers"][eid][cid] = container
+                    if container is not None:
+                        self.raw_data["containers"][eid][cid] = container
 
                     # Extract Network Mode
-                    container["Network"] = inspect_data_raw.get("HostConfig", {}).get(
-                        "NetworkMode", "unknown"
-                    )
+                    if container is not None:
+                        container["Network"] = inspect_data_raw.get(
+                            "HostConfig", {}
+                        ).get("NetworkMode", "unknown")
 
-                    # Extract IP Address
-                    ip_address = "unknown"
-                    networks = inspect_data_raw.get("NetworkSettings", {}).get(
-                        "Networks", {}
-                    )
-                    if networks:
-                        for network_details in networks.values():
-                            if network_details.get("IPAddress"):
-                                ip_address = network_details["IPAddress"]
-                                break
-                    container["IPAddress"] = ip_address
+                        # Extract IP Address
+                        ip_address = "unknown"
+                        networks = inspect_data_raw.get("NetworkSettings", {}).get(
+                            "Networks", {}
+                        )
+                        if networks:
+                            for network_details in networks.values():
+                                if network_details.get("IPAddress"):
+                                    ip_address = network_details["IPAddress"]
+                                    break
+                        container["IPAddress"] = ip_address
 
-                    # Format Mounts
-                    mounts_list = []
-                    if isinstance(inspect_data_raw.get("Mounts"), list):
-                        for mount_info in inspect_data_raw["Mounts"]:
-                            source = mount_info.get("Source") or mount_info.get("Name")
-                            destination = mount_info.get("Destination")
-                            if source and destination:
-                                mounts_list.append(f"{source}:{destination}")
-                    container["Mounts"] = (
-                        ", ".join(mounts_list) if mounts_list else "none"
-                    )
+                        # Format Mounts
+                        mounts_list = []
+                        if isinstance(inspect_data_raw.get("Mounts"), list):
+                            for mount_info in inspect_data_raw["Mounts"]:
+                                source = mount_info.get("Source") or mount_info.get(
+                                    "Name"
+                                )
+                                destination = mount_info.get("Destination")
+                                if source and destination:
+                                    mounts_list.append(f"{source}:{destination}")
+                        container["Mounts"] = (
+                            ", ".join(mounts_list) if mounts_list else "none"
+                        )
 
-                    # Extract Image ID
-                    container["ImageID"] = inspect_data_raw.get("Image", "unknown")
+                        # Extract Image ID
+                        container["ImageID"] = inspect_data_raw.get("Image", "unknown")
 
-                    # Extract Exit Code
-                    container["ExitCode"] = inspect_data_raw.get("State", {}).get(
-                        "ExitCode"
-                    )
+                        # Extract Exit Code
+                        container["ExitCode"] = inspect_data_raw.get("State", {}).get(
+                            "ExitCode"
+                        )
 
-                    # Extract Privileged Mode
-                    container["Privileged"] = inspect_data_raw.get(
-                        "HostConfig", {}
-                    ).get("Privileged", False)
+                        # Extract Privileged Mode
+                        container["Privileged"] = inspect_data_raw.get(
+                            "HostConfig", {}
+                        ).get("Privileged", False)
 
                     # Extract additional data from inspect endpoint
                     vals_to_parse = [
@@ -495,12 +511,33 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         data={}, source=inspect_data_raw, vals=vals_to_parse
                     )
 
-                    container["StartedAt"] = parsed_details.get("StartedAt")
-                    if self.features.get(CONF_FEATURE_HEALTH_CHECK):
-                        container[CUSTOM_ATTRIBUTE_ARRAY]["Health_Status"] = (
-                            parsed_details.get("Health_Status", "unknown")
-                        )
-                    if self.features.get(CONF_FEATURE_RESTART_POLICY):
+                    if container is not None:
+                        container["StartedAt"] = parsed_details.get("StartedAt")
+
+                    # Always initialize the custom attributes array
+                    if (
+                        container is not None
+                        and CUSTOM_ATTRIBUTE_ARRAY not in container
+                    ):
+                        container[CUSTOM_ATTRIBUTE_ARRAY] = {}
+
+                    if (
+                        self.features.get(CONF_FEATURE_HEALTH_CHECK)
+                        and container is not None
+                    ):
+                        # Ensure health status is always set, even if parsing failed
+                        health_status = parsed_details.get("Health_Status", "unknown")
+                        # If container is not running, health status should be none/unavailable
+                        if container.get("State") != "running":
+                            health_status = "unavailable"
+                        container[CUSTOM_ATTRIBUTE_ARRAY][
+                            "Health_Status"
+                        ] = health_status
+
+                    if (
+                        self.features.get(CONF_FEATURE_RESTART_POLICY)
+                        and container is not None
+                    ):
                         container[CUSTOM_ATTRIBUTE_ARRAY]["Restart_Policy"] = (
                             parsed_details.get("Restart_Policy", "unknown")
                         )

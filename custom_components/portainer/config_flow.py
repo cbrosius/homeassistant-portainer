@@ -194,7 +194,14 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_FEATURE_USE_ACTION_BUTTONS, True
             )
             self.options["stacks"] = user_input.get("stacks", [])
-            return await self.async_step_features()  # Corrected line
+
+            # Set default feature values
+            self.options[CONF_FEATURE_HEALTH_CHECK] = DEFAULT_FEATURE_HEALTH_CHECK
+            self.options[CONF_FEATURE_RESTART_POLICY] = DEFAULT_FEATURE_RESTART_POLICY
+
+            return self.async_create_entry(
+                title=self.options[CONF_NAME], data=self.options
+            )
 
         # Fetch containers and stacks for selected endpoints
         try:
@@ -239,43 +246,6 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
                 "containers": ", ".join(container_options.values()),
                 "stacks": ", ".join(stack_options.values()),
             },
-        )
-
-    async def async_step_features(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step for feature switches (existing options)."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return self.async_create_entry(
-                title=self.options[CONF_NAME], data=self.options
-            )
-
-        return self.async_show_form(
-            step_id="features",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_FEATURE_HEALTH_CHECK,
-                        default=self.options.get(
-                            CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
-                        ),
-                    ): bool,
-                    vol.Optional(
-                        CONF_FEATURE_RESTART_POLICY,
-                        default=self.options.get(
-                            CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
-                        ),
-                    ): bool,
-                    vol.Optional(
-                        CONF_FEATURE_USE_ACTION_BUTTONS,
-                        default=self.options.get(
-                            CONF_FEATURE_USE_ACTION_BUTTONS,
-                            DEFAULT_FEATURE_USE_ACTION_BUTTONS,
-                        ),
-                    ): bool,
-                }
-            ),
         )
 
     @staticmethod
@@ -433,7 +403,12 @@ class PortainerOptionsFlow(OptionsFlow):
             self.options[CONF_FEATURE_USE_ACTION_BUTTONS] = user_input.get(
                 CONF_FEATURE_USE_ACTION_BUTTONS, True
             )
-            return await self.async_step_features()  # Corrected line
+
+            # Set default feature values
+            self.options[CONF_FEATURE_HEALTH_CHECK] = DEFAULT_FEATURE_HEALTH_CHECK
+            self.options[CONF_FEATURE_RESTART_POLICY] = DEFAULT_FEATURE_RESTART_POLICY
+
+            return self.async_create_entry(title="", data=self.options)
 
         # Fetch containers and stacks for selected endpoints
         try:
@@ -509,38 +484,3 @@ class PortainerOptionsFlow(OptionsFlow):
         except Exception as exc:
             _LOGGER.exception("Failed to fetch containers/stacks: %s", exc)
             return self.async_abort(reason="item_fetch_failed")
-
-    async def async_step_features(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step for feature switches (existing options)."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return self.async_create_entry(title="", data=self.options)
-
-        return self.async_show_form(
-            step_id="features",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_FEATURE_HEALTH_CHECK,
-                        default=self.options.get(
-                            CONF_FEATURE_HEALTH_CHECK, DEFAULT_FEATURE_HEALTH_CHECK
-                        ),
-                    ): bool,
-                    vol.Optional(
-                        CONF_FEATURE_RESTART_POLICY,
-                        default=self.options.get(
-                            CONF_FEATURE_RESTART_POLICY, DEFAULT_FEATURE_RESTART_POLICY
-                        ),
-                    ): bool,
-                    vol.Optional(
-                        CONF_FEATURE_USE_ACTION_BUTTONS,
-                        default=self.options.get(
-                            CONF_FEATURE_USE_ACTION_BUTTONS,
-                            DEFAULT_FEATURE_USE_ACTION_BUTTONS,
-                        ),
-                    ): bool,
-                }
-            ),
-        )

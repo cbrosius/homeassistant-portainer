@@ -1,5 +1,6 @@
 """Portainer API."""
 
+import json
 import requests
 from logging import getLogger
 from threading import Lock
@@ -52,7 +53,10 @@ class PortainerAPI(object):
     # ---------------------------
     def connection_test(self) -> tuple:
         """Test connection."""
-        self.query("endpoints")
+        result = self.query("endpoints")
+        if result is None:
+            # Query failed, return the error state
+            return False, self._error if self._error else "connection_failed"
 
         return self._connected, self._error
 
@@ -63,7 +67,13 @@ class PortainerAPI(object):
         self, service: str, method: str = "GET", params: Optional[dict[str, Any]] = None
     ) -> Optional[List[dict]]:
         """Retrieve data from Portainer."""
-        self.lock.acquire()
+        try:
+            self.lock.acquire()
+        except Exception as e:
+            _LOGGER.error("Failed to acquire lock for Portainer API query: %s", e)
+            self._error = "lock_error"
+            return None
+
         error = False
         response = None
         try:
@@ -95,8 +105,14 @@ class PortainerAPI(object):
 
             response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
             if response.content:  # Check if there's content before trying to parse JSON
-                data = response.json()
-                # _LOGGER.debug("Portainer %s query response: %s", self._host, data)
+                try:
+                    data = response.json()
+                    # _LOGGER.debug("Portainer %s query response: %s", self._host, data)
+                except json.JSONDecodeError:
+                    _LOGGER.warning("Invalid JSON response from Portainer API")
+                    self._error = "invalid_json"
+                    self.lock.release()
+                    return None
             else:
                 data = None  # Or any other appropriate value indicating no data
         except Exception as e:
@@ -122,13 +138,11 @@ class PortainerAPI(object):
 
             _LOGGER.warning(log_message)
 
-            if (
-                response
-                and hasattr(response, "status_code")
-                and response.status_code != 500
-                and service != "reporting/get_data"
-            ):
-                self._connected = False
+            if response and hasattr(response, "status_code"):
+                # Set connected to False for any error response (including 500)
+                # but not for the special "reporting/get_data" service
+                if service != "reporting/get_data":
+                    self._connected = False
             self._error = (
                 response.status_code
                 if response and hasattr(response, "status_code")

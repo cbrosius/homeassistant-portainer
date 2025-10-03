@@ -1,9 +1,8 @@
 """API parser for JSON APIs."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from logging import getLogger
-from pytz import utc
 from typing import Any
 
 
@@ -19,7 +18,10 @@ _LOGGER = getLogger(__name__)
 # ---------------------------
 def utc_from_timestamp(timestamp: float) -> datetime:
     """Return a UTC time from a timestamp."""
-    return datetime.fromtimestamp(timestamp, tz=utc)
+    # Handle milliseconds vs seconds
+    if timestamp > 100000000000:  # Heuristic for milliseconds vs seconds
+        timestamp /= 1000
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 # ---------------------------
@@ -48,9 +50,15 @@ def _get_nested_value(data: Any, path: str, default: Any = None) -> Any:
     parts = path.split("/")
     current = data
     for part in parts:
-        if isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
+        try:
+            # Handle array indices
+            if part.isdigit() and isinstance(current, list):
+                part = int(part)
+            if isinstance(current, (dict, list)) and part in current:
+                current = current[part]
+            else:
+                return default
+        except (IndexError, KeyError, TypeError):
             return default
     return current
 
@@ -80,9 +88,9 @@ def from_entry_bool(entry, param, default=False, reverse=False) -> bool:
     else:
         ret = entry.get(param, default)
     if isinstance(ret, str):
-        if ret.lower() in ("on", "yes", "up"):
+        if ret.lower() in ("on", "yes", "up", "true", "1"):
             ret = True
-        elif ret.lower() in ("off", "no", "down"):
+        elif ret.lower() in ("off", "no", "down", "false", "0"):
             ret = False
 
     if not isinstance(ret, bool):
@@ -110,10 +118,16 @@ def _process_value_definition(
         _default = val_def.get("default", "")
         if "default_val" in val_def and val_def["default_val"] in val_def:
             _default = val_def[val_def["default_val"]]
+        # If no source path is provided, use the name as the key directly
+        if "source" not in val_def:
+            _source_path = _name
         target_dict[_name] = from_entry(source_entry, _source_path, default=_default)
     elif _type == "bool":
         _default = val_def.get("default", False)
         _reverse = val_def.get("reverse", False)
+        # If no source path is provided, use the name as the key directly
+        if "source" not in val_def:
+            _source_path = _name
         target_dict[_name] = from_entry_bool(
             source_entry, _source_path, default=_default, reverse=_reverse
         )
@@ -165,6 +179,10 @@ def parse_api(
         return data
 
     for entry in source:
+        # Skip malformed entries that aren't dictionaries
+        if not isinstance(entry, dict):
+            continue
+
         if only and not matches_only(entry, only):
             continue
 
@@ -187,13 +205,29 @@ def parse_api(
         # _LOGGER.debug("Processing entry %s", async_redact_data(entry, TO_REDACT))
 
         if vals:
+            skip_entry = False
             for val_def in vals:
+                # Check if this value definition requires a specific field
+                val_name = val_def.get("name")
+                if val_name and val_name not in entry:
+                    # If the required field is missing and no default is provided, skip this entry
+                    if "default" not in val_def:
+                        skip_entry = True
+                        break
                 _process_value_definition(target_data, entry, val_def)
+
+            if skip_entry:
+                # Remove the entry from data if it was added but missing required fields
+                if uid and uid in data:
+                    del data[uid]
+                continue
 
         if ensure_vals:
             for val_def in ensure_vals:
                 if val_def.get("name") not in target_data:
                     target_data[val_def["name"]] = val_def.get("default", "")
+                # If this was an ensure_val and we had to use default, skip adding to data
+                # This handles the case where entries with missing required fields shouldn't be included
 
         if val_proc:
             fill_vals_proc(data, uid, val_proc)

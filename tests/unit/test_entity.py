@@ -28,7 +28,11 @@ class TestPortainerEntity:
         coordinator.name = "Test Portainer"
         coordinator.config_entry = Mock()
         coordinator.config_entry.entry_id = "test_entry_id"
-        coordinator.config_entry.data = {"name": "Test Portainer", "host": "localhost", "ssl": False}
+        coordinator.config_entry.data = {
+            "name": "Test Portainer",
+            "host": "localhost",
+            "ssl": False,
+        }
         coordinator.data = {
             "containers": {
                 "1_web-server": {
@@ -51,7 +55,7 @@ class TestPortainerEntity:
                     "Name": "web-stack",
                     "EndpointId": 1,
                 }
-            }
+            },
         }
         coordinator.connected.return_value = True
         coordinator.selected_containers = {"1_web-server"}
@@ -82,7 +86,7 @@ class TestPortainerEntity:
         return PortainerEntity(
             coordinator=mock_coordinator,
             description=mock_description,
-            uid="1_web-server"
+            uid="1_web-server",
         )
 
     def test_entity_initialization(self, entity, mock_coordinator, mock_description):
@@ -99,9 +103,7 @@ class TestPortainerEntity:
     def test_entity_initialization_no_uid(self, mock_coordinator, mock_description):
         """Test entity initialization without uid."""
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=mock_description,
-            uid=None
+            coordinator=mock_coordinator, description=mock_description, uid=None
         )
 
         assert entity._uid is None
@@ -109,21 +111,23 @@ class TestPortainerEntity:
 
     def test_entity_unique_id_with_uid(self, entity):
         """Test entity unique_id generation with uid."""
-        expected_unique_id = "portainer-container_state-1_web-server_abc123def456_test_entry_id"
+        expected_unique_id = (
+            "portainer-container_state-1_web-server_abc123def456_test_entry_id"
+        )
         assert entity.unique_id == expected_unique_id
 
     def test_entity_unique_id_without_uid(self, mock_coordinator, mock_description):
         """Test entity unique_id generation without uid."""
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=mock_description,
-            uid=None
+            coordinator=mock_coordinator, description=mock_description, uid=None
         )
 
         expected_unique_id = "portainer-container_state-test_entry_id"
         assert entity.unique_id == expected_unique_id
 
-    def test_entity_unique_id_fallback_no_portainer_id(self, mock_coordinator, mock_description):
+    def test_entity_unique_id_fallback_no_portainer_id(
+        self, mock_coordinator, mock_description
+    ):
         """Test entity unique_id fallback when no Portainer ID."""
         # Remove Id from container data
         mock_coordinator.data["containers"]["1_web-server"].pop("Id", None)
@@ -131,7 +135,7 @@ class TestPortainerEntity:
         entity = PortainerEntity(
             coordinator=mock_coordinator,
             description=mock_description,
-            uid="1_web-server"
+            uid="1_web-server",
         )
 
         expected_unique_id = "portainer-container_state-test_entry_id"
@@ -144,9 +148,7 @@ class TestPortainerEntity:
     def test_entity_name_without_uid(self, mock_coordinator, mock_description):
         """Test entity name generation without uid."""
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=mock_description,
-            uid=None
+            coordinator=mock_coordinator, description=mock_description, uid=None
         )
 
         assert entity.name == "State"
@@ -159,9 +161,7 @@ class TestPortainerEntity:
         description.name = None
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1_web-server"
+            coordinator=mock_coordinator, description=description, uid="1_web-server"
         )
 
         assert entity.name == "web-server"
@@ -185,9 +185,7 @@ class TestPortainerEntity:
         description.func = "SystemSensor"
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid=None
+            coordinator=mock_coordinator, description=description, uid=None
         )
 
         device_info = entity.device_info
@@ -203,8 +201,12 @@ class TestPortainerEntity:
         """Test entity device info for container group."""
         device_info = entity.device_info
 
-        assert device_info.connections == {("portainer", "Test Portainer_container_test_entry_id")}
-        assert device_info.identifiers == {("portainer", "Test Portainer_container_test_entry_id")}
+        assert device_info.connections == {
+            ("portainer", "Test Portainer_container_test_entry_id")
+        }
+        assert device_info.identifiers == {
+            ("portainer", "Test Portainer_container_test_entry_id")
+        }
         assert device_info.name == "Test Portainer container"
         assert device_info.manufacturer == "Docker"
         assert device_info.sw_version == ""
@@ -212,7 +214,9 @@ class TestPortainerEntity:
     def test_entity_device_info_with_environment(self, mock_coordinator):
         """Test entity device info with environment data."""
         # Add environment data
-        mock_coordinator.data["containers"]["1_web-server"]["Environment"] = "production"
+        mock_coordinator.data["containers"]["1_web-server"][
+            "Environment"
+        ] = "production"
 
         description = Mock()
         description.ha_group = "container"
@@ -221,15 +225,15 @@ class TestPortainerEntity:
         description.func = "ContainerSensor"
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1_web-server"
+            coordinator=mock_coordinator, description=description, uid="1_web-server"
         )
 
         device_info = entity.device_info
 
         assert device_info.name == "Test Portainer production"
-        assert device_info.connections == {("portainer", "Test Portainer_production_test_entry_id")}
+        assert device_info.connections == {
+            ("portainer", "Test Portainer_production_test_entry_id")
+        }
 
     def test_entity_device_info_data_group_substitution(self, mock_coordinator):
         """Test entity device info with data__ group substitution."""
@@ -240,15 +244,15 @@ class TestPortainerEntity:
         description.func = "ContainerSensor"
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1_web-server"
+            coordinator=mock_coordinator, description=description, uid="1_web-server"
         )
 
         device_info = entity.device_info
 
         assert device_info.name == "Test Portainer container"
-        assert device_info.connections == {("portainer", "Test Portainer_container_test_entry_id")}
+        assert device_info.connections == {
+            ("portainer", "Test Portainer_container_test_entry_id")
+        }
 
     def test_entity_device_info_connection_value_substitution(self, mock_coordinator):
         """Test entity device info with connection value substitution."""
@@ -259,14 +263,14 @@ class TestPortainerEntity:
         description.func = "ContainerSensor"
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1_web-server"
+            coordinator=mock_coordinator, description=description, uid="1_web-server"
         )
 
         device_info = entity.device_info
 
-        assert device_info.connections == {("portainer", "Test Portainer_container_test_entry_id")}
+        assert device_info.connections == {
+            ("portainer", "Test Portainer_container_test_entry_id")
+        }
 
     def test_entity_extra_state_attributes(self, entity):
         """Test entity extra state attributes."""
@@ -281,7 +285,7 @@ class TestPortainerEntity:
         # Add custom attributes
         mock_coordinator.data["containers"]["1_web-server"]["custom_attributes"] = {
             "health_status": "healthy",
-            "restart_policy": "always"
+            "restart_policy": "always",
         }
 
         description = Mock()
@@ -289,9 +293,7 @@ class TestPortainerEntity:
         description.data_attributes_list = ["State", "custom_attributes"]
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1_web-server"
+            coordinator=mock_coordinator, description=description, uid="1_web-server"
         )
 
         attributes = entity.extra_state_attributes
@@ -340,14 +342,12 @@ class TestPortainerEntity:
         description = Mock()
         description.data_path = "containers"
 
-        entity = PortainerEntity(
-            coordinator=None,
-            description=description,
-            uid=None
-        )
+        entity = PortainerEntity(coordinator=None, description=description, uid=None)
         entity.hass = mock_hass
 
-        with patch.object(mock_hass.config_entries, 'async_get_entry') as mock_get_entry:
+        with patch.object(
+            mock_hass.config_entries, "async_get_entry"
+        ) as mock_get_entry:
             mock_entry = Mock()
             mock_entry.entry_id = "fallback_id"
             mock_get_entry.return_value = mock_entry
@@ -391,7 +391,11 @@ class TestAsyncCreateSensors:
         coordinator.hass = mock_hass
         coordinator.config_entry = Mock()
         coordinator.config_entry.entry_id = "test_entry_id"
-        coordinator.config_entry.data = {"name": "Test Portainer", "host": "localhost", "ssl": False}
+        coordinator.config_entry.data = {
+            "name": "Test Portainer",
+            "host": "localhost",
+            "ssl": False,
+        }
         coordinator.data = {
             "containers": {
                 "1_web-server": {
@@ -403,7 +407,7 @@ class TestAsyncCreateSensors:
                     "Name": "database",
                     "EndpointId": "1",
                     "State": "running",
-                }
+                },
             },
             "endpoints": {
                 "1": {
@@ -416,7 +420,7 @@ class TestAsyncCreateSensors:
                     "Name": "web-stack",
                     "EndpointId": 1,
                 }
-            }
+            },
         }
         coordinator.selected_containers = {"1_web-server"}
         coordinator.selected_stacks = {"1"}
@@ -456,7 +460,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"TestSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         assert entities == []
 
@@ -472,7 +478,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"TestSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         assert entities == []
 
@@ -488,13 +496,17 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"TestSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should create one entity for the whole data path
         assert len(entities) == 1
 
     @pytest.mark.asyncio
-    async def test_async_create_sensors_with_data_reference_containers(self, mock_coordinator):
+    async def test_async_create_sensors_with_data_reference_containers(
+        self, mock_coordinator
+    ):
         """Test async_create_sensors with data reference for containers."""
         description = Mock()
         description.data_path = "containers"
@@ -505,13 +517,17 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"ContainerSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should create entities for selected containers only
         assert len(entities) == 1  # Only web-server is selected
 
     @pytest.mark.asyncio
-    async def test_async_create_sensors_with_data_reference_stacks(self, mock_coordinator):
+    async def test_async_create_sensors_with_data_reference_stacks(
+        self, mock_coordinator
+    ):
         """Test async_create_sensors with data reference for stacks."""
         description = Mock()
         description.data_path = "stacks"
@@ -522,7 +538,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"StackSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should create entities for selected stacks only
         assert len(entities) == 1  # Only stack 1 is selected
@@ -536,7 +554,9 @@ class TestAsyncCreateSensors:
             "EndpointId": "1",
             "State": "running",
         }
-        mock_coordinator.selected_containers = {"1_web-server"}  # Only web-server selected
+        mock_coordinator.selected_containers = {
+            "1_web-server"
+        }  # Only web-server selected
 
         description = Mock()
         description.data_path = "containers"
@@ -547,7 +567,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"ContainerSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should only create entity for selected container
         assert len(entities) == 1
@@ -571,7 +593,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"StackSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should only create entity for selected stack
         assert len(entities) == 1
@@ -591,7 +615,9 @@ class TestAsyncCreateSensors:
         descriptions = [description]
         dispatcher = {"ContainerSensor": Mock()}
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should skip containers with missing required data
         assert len(entities) == 0
@@ -600,27 +626,33 @@ class TestAsyncCreateSensors:
     async def test_async_create_sensors_multiple_descriptions(self, mock_coordinator):
         """Test async_create_sensors with multiple descriptions."""
         descriptions = [
-            Mock(**{
-                "data_path": "containers",
-                "data_attribute": "State",
-                "data_name": "Name",
-                "data_reference": True,
-                "func": "ContainerSensor"
-            }),
-            Mock(**{
-                "data_path": "endpoints",
-                "data_attribute": "Status",
-                "data_name": "Name",
-                "data_reference": None,
-                "func": "EndpointSensor"
-            }),
-            Mock(**{
-                "data_path": "stacks",
-                "data_attribute": "Status",
-                "data_name": "Name",
-                "data_reference": True,
-                "func": "StackSensor"
-            }),
+            Mock(
+                **{
+                    "data_path": "containers",
+                    "data_attribute": "State",
+                    "data_name": "Name",
+                    "data_reference": True,
+                    "func": "ContainerSensor",
+                }
+            ),
+            Mock(
+                **{
+                    "data_path": "endpoints",
+                    "data_attribute": "Status",
+                    "data_name": "Name",
+                    "data_reference": None,
+                    "func": "EndpointSensor",
+                }
+            ),
+            Mock(
+                **{
+                    "data_path": "stacks",
+                    "data_attribute": "Status",
+                    "data_name": "Name",
+                    "data_reference": True,
+                    "func": "StackSensor",
+                }
+            ),
         ]
         dispatcher = {
             "ContainerSensor": Mock(),
@@ -628,21 +660,27 @@ class TestAsyncCreateSensors:
             "StackSensor": Mock(),
         }
 
-        entities = await async_create_sensors(mock_coordinator, descriptions, dispatcher)
+        entities = await async_create_sensors(
+            mock_coordinator, descriptions, dispatcher
+        )
 
         # Should create entities for each valid description
         assert len(entities) == 3  # 1 container + 1 endpoint + 1 stack
 
-    def test_entity_state_attributes_formatting(self, mock_coordinator, mock_description):
+    def test_entity_state_attributes_formatting(
+        self, mock_coordinator, mock_description
+    ):
         """Test that state attributes are properly formatted."""
         entity = PortainerEntity(
             coordinator=mock_coordinator,
             description=mock_description,
-            uid="1_web-server"
+            uid="1_web-server",
         )
 
         # Mock the format_attribute function
-        with patch("custom_components.portainer.entity.format_attribute") as mock_format:
+        with patch(
+            "custom_components.portainer.entity.format_attribute"
+        ) as mock_format:
             mock_format.side_effect = lambda x: x.replace("_", " ").title()
 
             attributes = entity.extra_state_attributes
@@ -659,9 +697,7 @@ class TestAsyncCreateSensors:
         description.func = "EndpointSensor"
 
         entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=description,
-            uid="1"
+            coordinator=mock_coordinator, description=description, uid="1"
         )
 
         device_info = entity.device_info
@@ -678,7 +714,7 @@ class TestAsyncCreateSensors:
         container_entity = PortainerEntity(
             coordinator=mock_coordinator,
             description=container_description,
-            uid="1_web-server"
+            uid="1_web-server",
         )
         container_unique_id = container_entity.unique_id
 
@@ -687,9 +723,7 @@ class TestAsyncCreateSensors:
         endpoint_description.data_path = "endpoints"
         endpoint_description.key = "endpoint_status"
         endpoint_entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=endpoint_description,
-            uid="1"
+            coordinator=mock_coordinator, description=endpoint_description, uid="1"
         )
         endpoint_unique_id = endpoint_entity.unique_id
 
@@ -698,9 +732,7 @@ class TestAsyncCreateSensors:
         stack_description.data_path = "stacks"
         stack_description.key = "stack_status"
         stack_entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=stack_description,
-            uid="1"
+            coordinator=mock_coordinator, description=stack_description, uid="1"
         )
         stack_unique_id = stack_entity.unique_id
 
@@ -716,7 +748,7 @@ class TestAsyncCreateSensors:
         container_entity = PortainerEntity(
             coordinator=mock_coordinator,
             description=container_description,
-            uid="1_web-server"
+            uid="1_web-server",
         )
 
         assert container_entity._data["Name"] == "web-server"
@@ -725,9 +757,7 @@ class TestAsyncCreateSensors:
         endpoint_description = Mock()
         endpoint_description.data_path = "endpoints"
         endpoint_entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=endpoint_description,
-            uid="1"
+            coordinator=mock_coordinator, description=endpoint_description, uid="1"
         )
 
         assert endpoint_entity._data["Name"] == "local"
@@ -736,9 +766,7 @@ class TestAsyncCreateSensors:
         stack_description = Mock()
         stack_description.data_path = "stacks"
         stack_entity = PortainerEntity(
-            coordinator=mock_coordinator,
-            description=stack_description,
-            uid="1"
+            coordinator=mock_coordinator, description=stack_description, uid="1"
         )
 
         assert stack_entity._data["Name"] == "web-stack"

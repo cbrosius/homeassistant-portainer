@@ -273,7 +273,9 @@ class TestHelperFunctions:
         """Test as_local during DST transition."""
         # Create a datetime that would be affected by DST
         # This is a simplified test since actual DST rules are complex
-        utc_dt = datetime(2021, 3, 14, 2, 30, 0, tzinfo=timezone.utc)  # During spring DST transition
+        utc_dt = datetime(
+            2021, 3, 14, 2, 30, 0, tzinfo=timezone.utc
+        )  # During spring DST transition
 
         with patch("custom_components.portainer.helper.DEFAULT_TIME_ZONE") as mock_tz:
             mock_tz.return_value = None
@@ -296,7 +298,9 @@ class TestHelperFunctions:
         test_cases = [
             datetime(2021, 1, 1, 0, 0, 0),  # Naive datetime
             datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),  # UTC datetime
-            datetime(2021, 1, 1, 0, 0, 0, 123456, tzinfo=timezone.utc),  # With microseconds
+            datetime(
+                2021, 1, 1, 0, 0, 0, 123456, tzinfo=timezone.utc
+            ),  # With microseconds
         ]
 
         with patch("custom_components.portainer.helper.DEFAULT_TIME_ZONE", None):

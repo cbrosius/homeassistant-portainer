@@ -23,7 +23,9 @@ def create_mock_hass() -> HomeAssistant:
 
     # Mock async_add_executor_job
     async def mock_add_executor_job(func, *args, **kwargs):
-        return await asyncio.get_event_loop().run_in_executor(None, func, *args, **kwargs)
+        return await asyncio.get_event_loop().run_in_executor(
+            None, func, *args, **kwargs
+        )
 
     hass.async_add_executor_job = mock_add_executor_job
 
@@ -186,11 +188,19 @@ def create_mock_portainer_api_with_responses() -> PortainerAPI:
     api.query.side_effect = lambda service, method="GET", params=None: {
         "endpoints": get_endpoints_response(),
         "endpoints/1/docker/containers/json?all=1": get_containers_response(),
-        "endpoints/2/docker/containers/json?all=1": get_containers_response()[:2],  # Fewer for endpoint 2
-        "endpoints/3/docker/containers/json?all=1": get_containers_response()[2:],  # Different for endpoint 3
+        "endpoints/2/docker/containers/json?all=1": get_containers_response()[
+            :2
+        ],  # Fewer for endpoint 2
+        "endpoints/3/docker/containers/json?all=1": get_containers_response()[
+            2:
+        ],  # Different for endpoint 3
         "stacks": get_stacks_response(),
-        "endpoints/1/docker/containers/abc123def456/json": get_container_inspect_response("abc123def456"),
-        "endpoints/1/docker/containers/def789ghi012/json": get_container_inspect_response("def789ghi012"),
+        "endpoints/1/docker/containers/abc123def456/json": get_container_inspect_response(
+            "abc123def456"
+        ),
+        "endpoints/1/docker/containers/def789ghi012/json": get_container_inspect_response(
+            "def789ghi012"
+        ),
     }.get(service)
 
     api.get_endpoints.return_value = [
@@ -200,7 +210,12 @@ def create_mock_portainer_api_with_responses() -> PortainerAPI:
     ]
 
     api.get_containers.side_effect = lambda endpoint_id: [
-        {"id": c["Id"], "name": c["Names"][0][1:], "status": c["State"], "endpoint_id": endpoint_id}
+        {
+            "id": c["Id"],
+            "name": c["Names"][0][1:],
+            "status": c["State"],
+            "endpoint_id": endpoint_id,
+        }
         for c in get_containers_response()
     ]
 
@@ -278,7 +293,9 @@ def create_mock_coordinator_empty() -> PortainerCoordinator:
 # ---------------------------
 #   Mock Entity Fixtures
 # ---------------------------
-def create_mock_endpoint_entity(coordinator: PortainerCoordinator, endpoint_id: str) -> MagicMock:
+def create_mock_endpoint_entity(
+    coordinator: PortainerCoordinator, endpoint_id: str
+) -> MagicMock:
     """Create mock endpoint entity."""
     entity = MagicMock()
     entity.unique_id = f"{coordinator.config_entry_id}_{endpoint_id}"
@@ -296,7 +313,9 @@ def create_mock_endpoint_entity(coordinator: PortainerCoordinator, endpoint_id: 
     return entity
 
 
-def create_mock_container_entity(coordinator: PortainerCoordinator, container_key: str) -> MagicMock:
+def create_mock_container_entity(
+    coordinator: PortainerCoordinator, container_key: str
+) -> MagicMock:
     """Create mock container entity."""
     entity = MagicMock()
     entity.unique_id = f"{coordinator.config_entry_id}_{container_key}"
@@ -307,7 +326,10 @@ def create_mock_container_entity(coordinator: PortainerCoordinator, container_ke
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (DOMAIN, f"{container_key.split('_')[0]}_{coordinator.config_entry_id}"),
+        "via_device": (
+            DOMAIN,
+            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        ),
     }
     entity.entity_id = f"sensor.portainer_container_{container_key.replace('_', '_')}"
     entity.platform = "sensor"
@@ -315,7 +337,9 @@ def create_mock_container_entity(coordinator: PortainerCoordinator, container_ke
     return entity
 
 
-def create_mock_stack_entity(coordinator: PortainerCoordinator, stack_id: str) -> MagicMock:
+def create_mock_stack_entity(
+    coordinator: PortainerCoordinator, stack_id: str
+) -> MagicMock:
     """Create mock stack entity."""
     entity = MagicMock()
     entity.unique_id = f"{coordinator.config_entry_id}_stack_{stack_id}"
@@ -336,7 +360,9 @@ def create_mock_stack_entity(coordinator: PortainerCoordinator, stack_id: str) -
 # ---------------------------
 #   Mock Entity Collections
 # ---------------------------
-def create_mock_entities_for_coordinator(coordinator: PortainerCoordinator) -> Dict[str, List[MagicMock]]:
+def create_mock_entities_for_coordinator(
+    coordinator: PortainerCoordinator,
+) -> Dict[str, List[MagicMock]]:
     """Create mock entities for a coordinator."""
     entities = {
         "endpoints": [],
@@ -365,7 +391,9 @@ def create_mock_entities_for_coordinator(coordinator: PortainerCoordinator) -> D
 # ---------------------------
 #   Mock Button Entities
 # ---------------------------
-def create_mock_restart_button_entity(coordinator: PortainerCoordinator, container_key: str) -> MagicMock:
+def create_mock_restart_button_entity(
+    coordinator: PortainerCoordinator, container_key: str
+) -> MagicMock:
     """Create mock restart button entity."""
     entity = MagicMock()
     entity.unique_id = f"{coordinator.config_entry_id}_{container_key}_restart"
@@ -375,7 +403,10 @@ def create_mock_restart_button_entity(coordinator: PortainerCoordinator, contain
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (DOMAIN, f"{container_key.split('_')[0]}_{coordinator.config_entry_id}"),
+        "via_device": (
+            DOMAIN,
+            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        ),
     }
     entity.entity_id = f"button.portainer_restart_{container_key.replace('_', '_')}"
     entity.platform = "button"
@@ -386,7 +417,9 @@ def create_mock_restart_button_entity(coordinator: PortainerCoordinator, contain
     return entity
 
 
-def create_mock_recreate_button_entity(coordinator: PortainerCoordinator, container_key: str) -> MagicMock:
+def create_mock_recreate_button_entity(
+    coordinator: PortainerCoordinator, container_key: str
+) -> MagicMock:
     """Create mock recreate button entity."""
     entity = MagicMock()
     entity.unique_id = f"{coordinator.config_entry_id}_{container_key}_recreate"
@@ -396,7 +429,10 @@ def create_mock_recreate_button_entity(coordinator: PortainerCoordinator, contai
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (DOMAIN, f"{container_key.split('_')[0]}_{coordinator.config_entry_id}"),
+        "via_device": (
+            DOMAIN,
+            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        ),
     }
     entity.entity_id = f"button.portainer_recreate_{container_key.replace('_', '_')}"
     entity.platform = "button"
@@ -417,7 +453,9 @@ def create_mock_device_registry() -> MagicMock:
     # Mock device creation
     def mock_get_or_create(**kwargs):
         device = MagicMock()
-        device.id = f"device_{len(registry.devices) if hasattr(registry, 'devices') else 0}"
+        device.id = (
+            f"device_{len(registry.devices) if hasattr(registry, 'devices') else 0}"
+        )
         device.identifiers = kwargs.get("identifiers", set())
         device.name = kwargs.get("name", "Unknown Device")
         device.manufacturer = kwargs.get("manufacturer", "Unknown")
@@ -441,7 +479,9 @@ def create_mock_device_registry() -> MagicMock:
 
             container_device = MagicMock()
             container_device.id = "device_container_web_server"
-            container_device.identifiers = {(DOMAIN, "1_web-server_test_portainer_entry_123")}
+            container_device.identifiers = {
+                (DOMAIN, "1_web-server_test_portainer_entry_123")
+            }
             container_device.name = "web-server"
             container_device.model = "Container"
             devices.append(container_device)
@@ -548,6 +588,7 @@ def create_error_scenario_mock_setup() -> Dict[str, Any]:
 # ---------------------------
 def create_async_mock_coordinator_update() -> AsyncMock:
     """Create async mock for coordinator update."""
+
     async def mock_update():
         return {"endpoints": {}, "containers": {}, "stacks": {}}
 

@@ -69,9 +69,12 @@ class TestPortainerCoordinator:
     @pytest.fixture
     def coordinator(self, mock_hass, mock_config_entry, mock_api):
         """Create PortainerCoordinator instance for testing."""
-        with patch("custom_components.portainer.coordinator.PortainerAPI", return_value=mock_api), \
-                patch("homeassistant.helpers.frame.report_usage"), \
-                patch("homeassistant.helpers.frame._hass", mock_hass):
+        with patch(
+            "custom_components.portainer.coordinator.PortainerAPI",
+            return_value=mock_api,
+        ), patch("homeassistant.helpers.frame.report_usage"), patch(
+            "homeassistant.helpers.frame._hass", mock_hass
+        ):
             coordinator = PortainerCoordinator(mock_hass, mock_config_entry)
             coordinator.api = mock_api  # Replace with our mock
             # Ensure config_entry is properly accessible
@@ -109,9 +112,11 @@ class TestPortainerCoordinator:
         }
         config_entry.options = {}
 
-        with patch("custom_components.portainer.coordinator.PortainerAPI") as mock_api_class, \
-                patch("homeassistant.helpers.frame.report_usage"), \
-                patch("homeassistant.helpers.frame._hass", mock_hass):
+        with patch(
+            "custom_components.portainer.coordinator.PortainerAPI"
+        ) as mock_api_class, patch("homeassistant.helpers.frame.report_usage"), patch(
+            "homeassistant.helpers.frame._hass", mock_hass
+        ):
             mock_api_instance = Mock()
             mock_api_class.return_value = mock_api_instance
 
@@ -120,8 +125,14 @@ class TestPortainerCoordinator:
             assert coordinator.selected_endpoints == set()
             assert coordinator.selected_containers == set()
             assert coordinator.selected_stacks == set()
-            assert coordinator.features[CONF_FEATURE_HEALTH_CHECK] == DEFAULT_FEATURE_HEALTH_CHECK
-            assert coordinator.features[CONF_FEATURE_RESTART_POLICY] == DEFAULT_FEATURE_RESTART_POLICY
+            assert (
+                coordinator.features[CONF_FEATURE_HEALTH_CHECK]
+                == DEFAULT_FEATURE_HEALTH_CHECK
+            )
+            assert (
+                coordinator.features[CONF_FEATURE_RESTART_POLICY]
+                == DEFAULT_FEATURE_RESTART_POLICY
+            )
 
     def test_connected_property(self, coordinator, mock_api):
         """Test connected property."""
@@ -138,25 +149,28 @@ class TestPortainerCoordinator:
         mock_api.query.side_effect = [
             get_endpoints_response(),  # endpoints
             get_containers_response(),  # containers for endpoint 1
-            get_stacks_response(),     # stacks
+            get_stacks_response(),  # stacks
         ]
 
         # Mock async_add_executor_job to run immediately
         async def mock_executor_job(func):
             # For mocked methods, just call them directly
-            if hasattr(func, '__name__') and 'mock' in str(type(func)):
+            if hasattr(func, "__name__") and "mock" in str(type(func)):
                 return func()
             elif asyncio.iscoroutinefunction(func):
                 return await func()
             else:
                 return func()
 
-        coordinator.hass.async_add_executor_job = AsyncMock(side_effect=mock_executor_job)
+        coordinator.hass.async_add_executor_job = AsyncMock(
+            side_effect=mock_executor_job
+        )
 
-        with patch.object(coordinator, 'get_endpoints'), \
-                patch.object(coordinator, 'get_containers'), \
-                patch.object(coordinator, 'get_stacks'), \
-                patch.object(coordinator, '_create_endpoint_devices'):
+        with patch.object(coordinator, "get_endpoints"), patch.object(
+            coordinator, "get_containers"
+        ), patch.object(coordinator, "get_stacks"), patch.object(
+            coordinator, "_create_endpoint_devices"
+        ):
 
             result = await coordinator._async_update_data()
 
@@ -180,7 +194,9 @@ class TestPortainerCoordinator:
         """Test data update with exception."""
         mock_api.query.side_effect = Exception("API Error")
 
-        with patch.object(coordinator, 'get_endpoints', side_effect=Exception("Test error")):
+        with patch.object(
+            coordinator, "get_endpoints", side_effect=Exception("Test error")
+        ):
             with pytest.raises(Exception):  # Should raise UpdateFailed
                 await coordinator._async_update_data()
 
@@ -191,7 +207,9 @@ class TestPortainerCoordinator:
 
         coordinator.get_endpoints()
 
-        assert len(coordinator.raw_data["endpoints"]) == 2  # Only active endpoints (Status=1)
+        assert (
+            len(coordinator.raw_data["endpoints"]) == 2
+        )  # Only active endpoints (Status=1)
         assert "1" in coordinator.raw_data["endpoints"]  # local endpoint
         assert "2" in coordinator.raw_data["endpoints"]  # swarm-cluster endpoint
 
@@ -232,8 +250,12 @@ class TestPortainerCoordinator:
         # Mock container responses for each endpoint
         mock_api.query.side_effect = [
             get_containers_response(),  # containers for endpoint 1
-            get_container_inspect_response("abc123def456"),  # inspect for first container
-            get_container_inspect_response("def789ghi012"),  # inspect for second container
+            get_container_inspect_response(
+                "abc123def456"
+            ),  # inspect for first container
+            get_container_inspect_response(
+                "def789ghi012"
+            ),  # inspect for second container
         ]
 
         coordinator.get_containers()
@@ -284,7 +306,9 @@ class TestPortainerCoordinator:
         actual_keys = set(coordinator.raw_data["containers"].keys())
 
         # Filter actual_keys to only include expected containers
-        filtered_actual = {k for k in actual_keys if any(selected in k for selected in expected_keys)}
+        filtered_actual = {
+            k for k in actual_keys if any(selected in k for selected in expected_keys)
+        }
         assert filtered_actual == expected_keys
 
     def test_get_stacks_success(self, coordinator, mock_api):
@@ -423,7 +447,9 @@ class TestPortainerCoordinator:
             )
 
     @pytest.mark.asyncio
-    async def test_async_update_data_with_repairs_integration(self, coordinator, mock_api):
+    async def test_async_update_data_with_repairs_integration(
+        self, coordinator, mock_api
+    ):
         """Test data update with repairs integration."""
         # Mock API responses
         mock_api.query.side_effect = [
@@ -434,22 +460,28 @@ class TestPortainerCoordinator:
 
         async def mock_executor_job(func):
             # For mocked methods, just call them directly
-            if hasattr(func, '__name__') and 'mock' in str(type(func)):
+            if hasattr(func, "__name__") and "mock" in str(type(func)):
                 return func()
             elif asyncio.iscoroutinefunction(func):
                 return await func()
             else:
                 return func()
 
-        coordinator.hass.async_add_executor_job = AsyncMock(side_effect=mock_executor_job)
+        coordinator.hass.async_add_executor_job = AsyncMock(
+            side_effect=mock_executor_job
+        )
 
-        with patch.object(coordinator, 'get_endpoints'), \
-                patch.object(coordinator, 'get_containers'), \
-                patch.object(coordinator, 'get_stacks'), \
-                patch.object(coordinator, '_create_endpoint_devices'), \
-                patch("custom_components.portainer.coordinator.dr") as mock_dr, \
-                patch("custom_components.portainer.coordinator.async_create_issue") as mock_create_issue, \
-                patch("custom_components.portainer.coordinator.async_delete_issue") as mock_delete_issue:
+        with patch.object(coordinator, "get_endpoints"), patch.object(
+            coordinator, "get_containers"
+        ), patch.object(coordinator, "get_stacks"), patch.object(
+            coordinator, "_create_endpoint_devices"
+        ), patch(
+            "custom_components.portainer.coordinator.dr"
+        ) as mock_dr, patch(
+            "custom_components.portainer.coordinator.async_create_issue"
+        ) as mock_create_issue, patch(
+            "custom_components.portainer.coordinator.async_delete_issue"
+        ) as mock_delete_issue:
 
             # Mock device registry
             mock_device_registry = Mock()
@@ -462,7 +494,9 @@ class TestPortainerCoordinator:
             existing_device.name = "local"
             existing_device.id = "device_1"
 
-            mock_device_registry.async_entries_for_config_entry.return_value = [existing_device]
+            mock_device_registry.async_entries_for_config_entry.return_value = [
+                existing_device
+            ]
 
             result = await coordinator._async_update_data()
 
@@ -473,7 +507,7 @@ class TestPortainerCoordinator:
 
     def test_coordinator_lock_initialization(self, coordinator):
         """Test that coordinator lock is properly initialized."""
-        assert hasattr(coordinator, 'lock')
+        assert hasattr(coordinator, "lock")
         assert coordinator.lock is not None
 
     def test_coordinator_features_configuration(self, mock_hass, mock_config_entry):
@@ -484,9 +518,9 @@ class TestPortainerCoordinator:
             CONF_FEATURE_RESTART_POLICY: False,
         }
 
-        with patch("custom_components.portainer.coordinator.PortainerAPI"), \
-                patch("homeassistant.helpers.frame.report_usage"), \
-                patch("homeassistant.helpers.frame._hass", mock_hass):
+        with patch("custom_components.portainer.coordinator.PortainerAPI"), patch(
+            "homeassistant.helpers.frame.report_usage"
+        ), patch("homeassistant.helpers.frame._hass", mock_hass):
             coordinator = PortainerCoordinator(mock_hass, mock_config_entry)
 
             assert coordinator.features[CONF_FEATURE_HEALTH_CHECK] is False
@@ -496,9 +530,9 @@ class TestPortainerCoordinator:
         """Test coordinator with action buttons disabled."""
         mock_config_entry.data["use_action_buttons"] = False
 
-        with patch("custom_components.portainer.coordinator.PortainerAPI"), \
-                patch("homeassistant.helpers.frame.report_usage"), \
-                patch("homeassistant.helpers.frame._hass", mock_hass):
+        with patch("custom_components.portainer.coordinator.PortainerAPI"), patch(
+            "homeassistant.helpers.frame.report_usage"
+        ), patch("homeassistant.helpers.frame._hass", mock_hass):
             coordinator = PortainerCoordinator(mock_hass, mock_config_entry)
 
             assert coordinator.create_action_buttons is False
@@ -515,7 +549,7 @@ class TestPortainerCoordinator:
                 "Id": 2,
                 "Name": None,  # Invalid name
                 "Status": 1,
-            }
+            },
         ]
         mock_api.query.return_value = malformed_endpoints
 
@@ -542,14 +576,10 @@ class TestPortainerCoordinator:
                         "IP": "0.0.0.0",
                         "PrivatePort": 80,
                         "PublicPort": 8080,
-                        "Type": "tcp"
+                        "Type": "tcp",
                     },
-                    {
-                        "IP": "127.0.0.1",
-                        "PrivatePort": 5432,
-                        "Type": "tcp"
-                    }
-                ]
+                    {"IP": "127.0.0.1", "PrivatePort": 5432, "Type": "tcp"},
+                ],
             }
         ]
 
@@ -561,9 +591,9 @@ class TestPortainerCoordinator:
             "NetworkSettings": {
                 "Ports": {
                     "80/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8080"}],
-                    "5432/tcp": [{"HostIp": "127.0.0.1", "HostPort": "5432"}]
+                    "5432/tcp": [{"HostIp": "127.0.0.1", "HostPort": "5432"}],
                 }
-            }
+            },
         }
 
         mock_api.query.side_effect = [test_containers, inspect_response]
@@ -571,7 +601,11 @@ class TestPortainerCoordinator:
         coordinator.get_containers()
 
         # Check if container was created with correct key format
-        container_keys = [k for k in coordinator.raw_data["containers"].keys() if "test-container" in k]
+        container_keys = [
+            k
+            for k in coordinator.raw_data["containers"].keys()
+            if "test-container" in k
+        ]
         assert len(container_keys) == 1
         container_key = container_keys[0]
         container = coordinator.raw_data["containers"][container_key]
@@ -601,14 +635,14 @@ class TestPortainerCoordinator:
                 {
                     "Source": "/host/path",
                     "Destination": "/container/path",
-                    "Type": "bind"
+                    "Type": "bind",
                 },
                 {
                     "Name": "volume_name",
                     "Source": "/var/lib/docker/volumes/volume_name/_data",
                     "Destination": "/data",
-                    "Type": "volume"
-                }
+                    "Type": "volume",
+                },
             ]
         }
 
@@ -617,7 +651,11 @@ class TestPortainerCoordinator:
         coordinator.get_containers()
 
         # Check if container was created with correct key format
-        container_keys = [k for k in coordinator.raw_data["containers"].keys() if "test-container" in k]
+        container_keys = [
+            k
+            for k in coordinator.raw_data["containers"].keys()
+            if "test-container" in k
+        ]
         assert len(container_keys) == 1
         container_key = container_keys[0]
         container = coordinator.raw_data["containers"][container_key]
@@ -660,7 +698,7 @@ class TestPortainerCoordinator:
                 "Id": "another456",
                 "Names": ["/database"],  # Match selected container
                 "State": "running",
-            }
+            },
         ]
 
         # Mock inspect responses for valid containers only
@@ -694,9 +732,13 @@ class TestPortainerCoordinator:
 
         # Should only process valid containers
         container_keys = list(coordinator.raw_data["containers"].keys())
-        assert len(container_keys) >= 1  # At least one valid container should be processed
+        assert (
+            len(container_keys) >= 1
+        )  # At least one valid container should be processed
 
-    def test_get_containers_with_none_inspect_data_handling(self, coordinator, mock_api):
+    def test_get_containers_with_none_inspect_data_handling(
+        self, coordinator, mock_api
+    ):
         """Test get containers with None inspect data handling."""
         # Set up endpoints first
         mock_api.query.return_value = get_endpoints_response()
@@ -749,15 +791,10 @@ class TestPortainerCoordinator:
             else:
                 return {
                     "Id": "test123",
-                    "State": {
-                        "Status": "running",
-                        "Health": {
-                            "Status": "healthy"
-                        }
-                    },
+                    "State": {"Status": "running", "Health": {"Status": "healthy"}},
                     "HostConfig": {
                         "NetworkMode": "bridge",
-                        "RestartPolicy": {"Name": "always"}
+                        "RestartPolicy": {"Name": "always"},
                     },
                     "NetworkSettings": {"Networks": {}},
                     "Mounts": [],
@@ -778,7 +815,9 @@ class TestPortainerCoordinator:
         assert "Health_Status" in container["_Custom"]
         assert container["_Custom"]["Health_Status"] == "healthy"
 
-    def test_health_status_parsing_with_none_container_properties(self, coordinator, mock_api):
+    def test_health_status_parsing_with_none_container_properties(
+        self, coordinator, mock_api
+    ):
         """Test health status parsing when container properties are None."""
         # Set up endpoints first
         mock_api.query.return_value = get_endpoints_response()
@@ -800,15 +839,10 @@ class TestPortainerCoordinator:
             else:
                 return {
                     "Id": "test123",
-                    "State": {
-                        "Status": "running",
-                        "Health": {
-                            "Status": "unhealthy"
-                        }
-                    },
+                    "State": {"Status": "running", "Health": {"Status": "unhealthy"}},
                     "HostConfig": {
                         "NetworkMode": "bridge",
-                        "RestartPolicy": {"Name": "always"}
+                        "RestartPolicy": {"Name": "always"},
                     },
                     "NetworkSettings": {"Networks": {}},
                     "Mounts": [],
@@ -829,7 +863,9 @@ class TestPortainerCoordinator:
         assert "State" in container
         assert "_Custom" in container
 
-    def test_container_processing_with_mixed_none_and_valid_data(self, coordinator, mock_api):
+    def test_container_processing_with_mixed_none_and_valid_data(
+        self, coordinator, mock_api
+    ):
         """Test container processing with mix of None and valid data."""
         # Set up endpoints first
         mock_api.query.return_value = get_endpoints_response()
@@ -847,7 +883,7 @@ class TestPortainerCoordinator:
                 "Id": "another456",
                 "Names": ["/another-container"],
                 "State": "stopped",  # Non-running container
-            }
+            },
         ]
 
         # Mock inspect responses for valid containers
@@ -867,7 +903,7 @@ class TestPortainerCoordinator:
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
                 "Image": "nginx:latest",
-            }
+            },
         ]
 
         mock_api.query.side_effect = [test_containers] + inspect_responses

@@ -119,12 +119,7 @@ def get_containers_response() -> List[Dict[str, Any]]:
             "State": "running",
             "Status": "Up 2 hours",
             "Ports": [
-                {
-                    "IP": "0.0.0.0",
-                    "PrivatePort": 80,
-                    "PublicPort": 8080,
-                    "Type": "tcp"
-                }
+                {"IP": "0.0.0.0", "PrivatePort": 80, "PublicPort": 8080, "Type": "tcp"}
             ],
             "Created": int((base_time - timedelta(hours=24)).timestamp()),
             "Labels": {
@@ -141,13 +136,7 @@ def get_containers_response() -> List[Dict[str, Any]]:
             "Image": "postgres:15",
             "State": "running",
             "Status": "Up 30 minutes",
-            "Ports": [
-                {
-                    "IP": "127.0.0.1",
-                    "PrivatePort": 5432,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"IP": "127.0.0.1", "PrivatePort": 5432, "Type": "tcp"}],
             "Created": int((base_time - timedelta(hours=12)).timestamp()),
             "Labels": {
                 "com.docker.compose.project": "web-stack",
@@ -161,12 +150,7 @@ def get_containers_response() -> List[Dict[str, Any]]:
             "Image": "redis:7-alpine",
             "State": "running",
             "Status": "Up 1 hour",
-            "Ports": [
-                {
-                    "PrivatePort": 6379,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"PrivatePort": 6379, "Type": "tcp"}],
             "Created": int((base_time - timedelta(hours=6)).timestamp()),
             "Labels": {
                 "com.docker.compose.project": "web-stack",
@@ -185,7 +169,7 @@ def get_containers_response() -> List[Dict[str, Any]]:
                     "IP": "0.0.0.0",
                     "PrivatePort": 9090,
                     "PublicPort": 9090,
-                    "Type": "tcp"
+                    "Type": "tcp",
                 }
             ],
             "Created": int((base_time - timedelta(hours=8)).timestamp()),
@@ -215,7 +199,7 @@ def get_containers_response() -> List[Dict[str, Any]]:
                     "IP": "0.0.0.0",
                     "PrivatePort": 3000,
                     "PublicPort": 3000,
-                    "Type": "tcp"
+                    "Type": "tcp",
                 }
             ],
             "Created": int((base_time - timedelta(hours=2)).timestamp()),
@@ -319,20 +303,33 @@ def get_container_inspect_response(container_id: str) -> Dict[str, Any]:
             "Pid": 12345 if config["state"] == "running" else 0,
             "ExitCode": 0 if config["state"] == "running" else 1,
             "Error": "",
-            "StartedAt": (base_time - timedelta(hours=2)).isoformat() + "Z" if config["state"] == "running" else None,
-            "FinishedAt": None if config["state"] == "running" else (base_time - timedelta(minutes=10)).isoformat() + "Z",
-            "Health": {
-                "Status": config["health_status"],
-                "FailingStreak": 0 if config["health_status"] == "healthy" else 3,
-                "Log": [
-                    {
-                        "Start": (base_time - timedelta(minutes=5)).isoformat() + "Z",
-                        "End": (base_time - timedelta(minutes=4)).isoformat() + "Z",
-                        "ExitCode": 0,
-                        "Output": "Health check passed",
-                    }
-                ],
-            } if config["state"] == "running" else None,
+            "StartedAt": (
+                (base_time - timedelta(hours=2)).isoformat() + "Z"
+                if config["state"] == "running"
+                else None
+            ),
+            "FinishedAt": (
+                None
+                if config["state"] == "running"
+                else (base_time - timedelta(minutes=10)).isoformat() + "Z"
+            ),
+            "Health": (
+                {
+                    "Status": config["health_status"],
+                    "FailingStreak": 0 if config["health_status"] == "healthy" else 3,
+                    "Log": [
+                        {
+                            "Start": (base_time - timedelta(minutes=5)).isoformat()
+                            + "Z",
+                            "End": (base_time - timedelta(minutes=4)).isoformat() + "Z",
+                            "ExitCode": 0,
+                            "Output": "Health check passed",
+                        }
+                    ],
+                }
+                if config["state"] == "running"
+                else None
+            ),
         },
         "Image": f"sha256:{'0' * 64}",
         "Name": f"/{config['name']}",
@@ -366,25 +363,37 @@ def get_container_inspect_response(container_id: str) -> Dict[str, Any]:
                 }
             }
         },
-        "Mounts": [
-            {
-                "Type": "volume",
-                "Name": f"volume_{config['name']}",
-                "Source": f"/var/lib/docker/volumes/volume_{config['name']}/_data",
-                "Destination": "/data",
-                "Driver": "local",
-                "Mode": "rw",
-                "RW": True,
-                "Propagation": "",
-            }
-        ] if config["name"] in ["database", "monitoring"] else [],
+        "Mounts": (
+            [
+                {
+                    "Type": "volume",
+                    "Name": f"volume_{config['name']}",
+                    "Source": f"/var/lib/docker/volumes/volume_{config['name']}/_data",
+                    "Destination": "/data",
+                    "Driver": "local",
+                    "Mode": "rw",
+                    "RW": True,
+                    "Propagation": "",
+                }
+            ]
+            if config["name"] in ["database", "monitoring"]
+            else []
+        ),
         "Config": {
-            "Env": [
-                "POSTGRES_PASSWORD=secret",
-                "POSTGRES_DB=mydb",
-            ] if "postgres" in config["image"] else [
-                "REDIS_PASSWORD=secret",
-            ] if "redis" in config["image"] else [],
+            "Env": (
+                [
+                    "POSTGRES_PASSWORD=secret",
+                    "POSTGRES_DB=mydb",
+                ]
+                if "postgres" in config["image"]
+                else (
+                    [
+                        "REDIS_PASSWORD=secret",
+                    ]
+                    if "redis" in config["image"]
+                    else []
+                )
+            ),
             "Labels": {
                 "com.docker.compose.project": "web-stack",
                 "com.docker.compose.service": config["name"],

@@ -50,13 +50,17 @@ class TestHelper:
             )
 
         # Mock the setup process
-        with patch("custom_components.portainer.async_setup_entry", return_value=True) as mock_setup:
+        with patch(
+            "custom_components.portainer.async_setup_entry", return_value=True
+        ) as mock_setup:
             result = await mock_setup(self.hass, config_entry)
             assert result is True
 
         return config_entry
 
-    def create_mock_container(self, container_id: str = "test_container", state: str = "running") -> Dict[str, Any]:
+    def create_mock_container(
+        self, container_id: str = "test_container", state: str = "running"
+    ) -> Dict[str, Any]:
         """Create a mock container for testing."""
         return {
             "Id": container_id,
@@ -78,7 +82,9 @@ class TestHelper:
             },
         }
 
-    def create_mock_endpoint(self, endpoint_id: int = 1, name: str = "local") -> Dict[str, Any]:
+    def create_mock_endpoint(
+        self, endpoint_id: int = 1, name: str = "local"
+    ) -> Dict[str, Any]:
         """Create a mock endpoint for testing."""
         return {
             "Id": endpoint_id,
@@ -132,13 +138,21 @@ class TestHelper:
 
     def mock_api_response(self, method: str, response: Any):
         """Mock API response for testing."""
-        return patch(f"custom_components.portainer.api.PortainerAPI.{method}", return_value=response)
+        return patch(
+            f"custom_components.portainer.api.PortainerAPI.{method}",
+            return_value=response,
+        )
 
     def mock_coordinator_update(self, data: Dict[str, Any]):
         """Mock coordinator data update."""
-        return patch("custom_components.portainer.coordinator.DataUpdateCoordinator.async_refresh", return_value=data)
+        return patch(
+            "custom_components.portainer.coordinator.DataUpdateCoordinator.async_refresh",
+            return_value=data,
+        )
 
-    async def wait_for_entity_state(self, entity_id: str, expected_state: Any, timeout: int = 5):
+    async def wait_for_entity_state(
+        self, entity_id: str, expected_state: Any, timeout: int = 5
+    ):
         """Wait for entity to reach expected state."""
         start_time = asyncio.get_event_loop().time()
 
@@ -148,21 +162,34 @@ class TestHelper:
                 return state
             await asyncio.sleep(0.1)
 
-        raise TimeoutError(f"Entity {entity_id} did not reach state {expected_state} within {timeout} seconds")
+        raise TimeoutError(
+            f"Entity {entity_id} did not reach state {expected_state} within {timeout} seconds"
+        )
 
 
-def assert_entity_state(hass: HomeAssistant, entity_id: str, expected_state: str, expected_attributes: Optional[Dict[str, Any]] = None):
+def assert_entity_state(
+    hass: HomeAssistant,
+    entity_id: str,
+    expected_state: str,
+    expected_attributes: Optional[Dict[str, Any]] = None,
+):
     """Assert entity state and optionally attributes."""
     state = hass.states.get(entity_id)
     assert state is not None, f"Entity {entity_id} not found"
-    assert state.state == expected_state, f"Entity {entity_id} state is {state.state}, expected {expected_state}"
+    assert (
+        state.state == expected_state
+    ), f"Entity {entity_id} state is {state.state}, expected {expected_state}"
 
     if expected_attributes:
         for key, value in expected_attributes.items():
-            assert state.attributes.get(key) == value, f"Entity {entity_id} attribute {key} is {state.attributes.get(key)}, expected {value}"
+            assert (
+                state.attributes.get(key) == value
+            ), f"Entity {entity_id} attribute {key} is {state.attributes.get(key)}, expected {value}"
 
 
-def assert_integration_setup(hass: HomeAssistant, domain: str, expected_entities: List[str]):
+def assert_integration_setup(
+    hass: HomeAssistant, domain: str, expected_entities: List[str]
+):
     """Assert integration is properly set up."""
     # Check that config entry exists
     config_entries = hass.config_entries.async_entries(domain)
@@ -185,6 +212,7 @@ async def async_fire_time_changed(hass: HomeAssistant, new_time):
 def create_test_data_update(coordinator_data: Dict[str, Any]):
     """Create test data update for coordinator."""
     from homeassistant.util import dt as dt_util
+
     return {
         "containers": coordinator_data.get("containers", []),
         "endpoints": coordinator_data.get("endpoints", []),

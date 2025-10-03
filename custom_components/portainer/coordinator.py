@@ -379,7 +379,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     container["ConfigEntryId"] = self.config_entry_id
 
                     # Initialize custom attributes array for feature data
-                    if container is not None and CUSTOM_ATTRIBUTE_ARRAY not in container:
+                    if (
+                        container is not None
+                        and CUSTOM_ATTRIBUTE_ARRAY not in container
+                    ):
                         container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 
                     # Format Published Ports
@@ -410,7 +413,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             "GET",
                             {"all": True},
                         )
-                        if not inspect_data_raw or not isinstance(inspect_data_raw, dict):
+                        if not inspect_data_raw or not isinstance(
+                            inspect_data_raw, dict
+                        ):
                             _LOGGER.warning(
                                 "Container %s on endpoint %s inspection returned no data or invalid format, skipping",
                                 container.get("Name", cid),
@@ -433,9 +438,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     # Extract Network Mode
                     if container is not None:
-                        container["Network"] = inspect_data_raw.get("HostConfig", {}).get(
-                            "NetworkMode", "unknown"
-                        )
+                        container["Network"] = inspect_data_raw.get(
+                            "HostConfig", {}
+                        ).get("NetworkMode", "unknown")
 
                         # Extract IP Address
                         ip_address = "unknown"
@@ -453,7 +458,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         mounts_list = []
                         if isinstance(inspect_data_raw.get("Mounts"), list):
                             for mount_info in inspect_data_raw["Mounts"]:
-                                source = mount_info.get("Source") or mount_info.get("Name")
+                                source = mount_info.get("Source") or mount_info.get(
+                                    "Name"
+                                )
                                 destination = mount_info.get("Destination")
                                 if source and destination:
                                     mounts_list.append(f"{source}:{destination}")
@@ -508,18 +515,29 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         container["StartedAt"] = parsed_details.get("StartedAt")
 
                     # Always initialize the custom attributes array
-                    if container is not None and CUSTOM_ATTRIBUTE_ARRAY not in container:
+                    if (
+                        container is not None
+                        and CUSTOM_ATTRIBUTE_ARRAY not in container
+                    ):
                         container[CUSTOM_ATTRIBUTE_ARRAY] = {}
 
-                    if self.features.get(CONF_FEATURE_HEALTH_CHECK) and container is not None:
+                    if (
+                        self.features.get(CONF_FEATURE_HEALTH_CHECK)
+                        and container is not None
+                    ):
                         # Ensure health status is always set, even if parsing failed
                         health_status = parsed_details.get("Health_Status", "unknown")
                         # If container is not running, health status should be none/unavailable
                         if container.get("State") != "running":
                             health_status = "unavailable"
-                        container[CUSTOM_ATTRIBUTE_ARRAY]["Health_Status"] = health_status
+                        container[CUSTOM_ATTRIBUTE_ARRAY][
+                            "Health_Status"
+                        ] = health_status
 
-                    if self.features.get(CONF_FEATURE_RESTART_POLICY) and container is not None:
+                    if (
+                        self.features.get(CONF_FEATURE_RESTART_POLICY)
+                        and container is not None
+                    ):
                         container[CUSTOM_ATTRIBUTE_ARRAY]["Restart_Policy"] = (
                             parsed_details.get("Restart_Policy", "unknown")
                         )

@@ -141,12 +141,7 @@ def get_container_entity_data() -> Dict[str, Dict[str, Any]]:
             "Network": "bridge",
             "IPAddress": "172.18.0.10",
             "Ports": [
-                {
-                    "IP": "0.0.0.0",
-                    "PrivatePort": 80,
-                    "PublicPort": 8080,
-                    "Type": "tcp"
-                }
+                {"IP": "0.0.0.0", "PrivatePort": 80, "PublicPort": 8080, "Type": "tcp"}
             ],
             "PublishedPorts": "8080->80/tcp",
             "Mounts": "none",
@@ -175,13 +170,7 @@ def get_container_entity_data() -> Dict[str, Dict[str, Any]]:
             "StartedAt": (base_time - timedelta(minutes=30)).isoformat() + "Z",
             "Network": "bridge",
             "IPAddress": "172.18.0.11",
-            "Ports": [
-                {
-                    "IP": "127.0.0.1",
-                    "PrivatePort": 5432,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"IP": "127.0.0.1", "PrivatePort": 5432, "Type": "tcp"}],
             "PublishedPorts": "5432/tcp",
             "Mounts": "/var/lib/docker/volumes/db_data:/var/lib/postgresql/data",
             "Compose_Stack": "web-stack",
@@ -209,12 +198,7 @@ def get_container_entity_data() -> Dict[str, Dict[str, Any]]:
             "StartedAt": (base_time - timedelta(hours=1)).isoformat() + "Z",
             "Network": "bridge",
             "IPAddress": "172.18.0.12",
-            "Ports": [
-                {
-                    "PrivatePort": 6379,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"PrivatePort": 6379, "Type": "tcp"}],
             "PublishedPorts": "6379/tcp",
             "Mounts": "none",
             "Compose_Stack": "web-stack",
@@ -247,7 +231,7 @@ def get_container_entity_data() -> Dict[str, Dict[str, Any]]:
                     "IP": "0.0.0.0",
                     "PrivatePort": 9090,
                     "PublicPort": 9090,
-                    "Type": "tcp"
+                    "Type": "tcp",
                 }
             ],
             "PublishedPorts": "9090->9090/tcp",
@@ -310,7 +294,7 @@ def get_container_entity_data() -> Dict[str, Dict[str, Any]]:
                     "IP": "0.0.0.0",
                     "PrivatePort": 3000,
                     "PublicPort": 3000,
-                    "Type": "tcp"
+                    "Type": "tcp",
                 }
             ],
             "PublishedPorts": "3000->3000/tcp",
@@ -376,18 +360,8 @@ def get_container_entity_data_swarm() -> Dict[str, Dict[str, Any]]:
             "Network": "ingress",
             "IPAddress": "10.0.1.10",
             "Ports": [
-                {
-                    "IP": "0.0.0.0",
-                    "PrivatePort": 80,
-                    "PublicPort": 80,
-                    "Type": "tcp"
-                },
-                {
-                    "IP": "0.0.0.0",
-                    "PrivatePort": 443,
-                    "PublicPort": 443,
-                    "Type": "tcp"
-                }
+                {"IP": "0.0.0.0", "PrivatePort": 80, "PublicPort": 80, "Type": "tcp"},
+                {"IP": "0.0.0.0", "PrivatePort": 443, "PublicPort": 443, "Type": "tcp"},
             ],
             "PublishedPorts": "80->80/tcp, 443->443/tcp",
             "Mounts": "/var/lib/docker/volumes/traefik_config:/etc/traefik",
@@ -417,14 +391,8 @@ def get_container_entity_data_swarm() -> Dict[str, Dict[str, Any]]:
             "Network": "backend",
             "IPAddress": "10.0.2.20",
             "Ports": [
-                {
-                    "PrivatePort": 5672,
-                    "Type": "tcp"
-                },
-                {
-                    "PrivatePort": 15672,
-                    "Type": "tcp"
-                }
+                {"PrivatePort": 5672, "Type": "tcp"},
+                {"PrivatePort": 15672, "Type": "tcp"},
             ],
             "PublishedPorts": "5672/tcp, 15672/tcp",
             "Mounts": "/var/lib/docker/volumes/rabbitmq_data:/var/lib/rabbitmq",
@@ -460,12 +428,7 @@ def get_container_entity_data_kubernetes() -> Dict[str, Dict[str, Any]]:
             "StartedAt": (base_time - timedelta(hours=1)).isoformat() + "Z",
             "Network": "calico",
             "IPAddress": "10.244.1.10",
-            "Ports": [
-                {
-                    "PrivatePort": 8080,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"PrivatePort": 8080, "Type": "tcp"}],
             "PublishedPorts": "8080/tcp",
             "Mounts": "/var/lib/kubelet/pods:/var/lib/kubelet/pods:ro",
             "Compose_Stack": "",
@@ -493,12 +456,7 @@ def get_container_entity_data_kubernetes() -> Dict[str, Dict[str, Any]]:
             "StartedAt": (base_time - timedelta(hours=2)).isoformat() + "Z",
             "Network": "calico",
             "IPAddress": "10.244.1.11",
-            "Ports": [
-                {
-                    "PrivatePort": 3000,
-                    "Type": "tcp"
-                }
-            ],
+            "Ports": [{"PrivatePort": 3000, "Type": "tcp"}],
             "PublishedPorts": "3000/tcp",
             "Mounts": "/tmp:/tmp",
             "Compose_Stack": "",
@@ -539,12 +497,7 @@ def get_container_entity_data_single() -> Dict[str, Dict[str, Any]]:
             "Network": "bridge",
             "IPAddress": "172.18.0.10",
             "Ports": [
-                {
-                    "IP": "0.0.0.0",
-                    "PrivatePort": 80,
-                    "PublicPort": 8080,
-                    "Type": "tcp"
-                }
+                {"IP": "0.0.0.0", "PrivatePort": 80, "PublicPort": 8080, "Type": "tcp"}
             ],
             "PublishedPorts": "8080->80/tcp",
             "Mounts": "none",

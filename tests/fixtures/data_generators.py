@@ -12,12 +12,12 @@ import uuid
 # ---------------------------
 def random_string(length: int = 10) -> str:
     """Generate random string."""
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def random_hex_string(length: int = 12) -> str:
     """Generate random hex string."""
-    return ''.join(random.choices(string.hexdigits.lower(), k=length))
+    return "".join(random.choices(string.hexdigits.lower(), k=length))
 
 
 def random_ip_address() -> str:
@@ -42,7 +42,7 @@ def random_timestamp(days_ago: int = 30) -> float:
         days=random_days,
         hours=random_hours,
         minutes=random_minutes,
-        seconds=random_seconds
+        seconds=random_seconds,
     )
     return random_time.timestamp()
 
@@ -59,9 +59,21 @@ def random_image_id() -> str:
 
 def random_container_name() -> str:
     """Generate random container name."""
-    prefixes = ["web", "api", "db", "cache", "app", "service", "worker", "proxy", "monitor"]
+    prefixes = [
+        "web",
+        "api",
+        "db",
+        "cache",
+        "app",
+        "service",
+        "worker",
+        "proxy",
+        "monitor",
+    ]
     suffixes = ["server", "service", "app", "container", "instance", "node", "cluster"]
-    return f"{random.choice(prefixes)}-{random.choice(suffixes)}-{random.randint(1, 99)}"
+    return (
+        f"{random.choice(prefixes)}-{random.choice(suffixes)}-{random.randint(1, 99)}"
+    )
 
 
 def random_endpoint_name() -> str:
@@ -73,7 +85,13 @@ def random_endpoint_name() -> str:
 
 def random_stack_name() -> str:
     """Generate random stack name."""
-    applications = ["web-stack", "api-stack", "data-stack", "monitoring-stack", "logging-stack"]
+    applications = [
+        "web-stack",
+        "api-stack",
+        "data-stack",
+        "monitoring-stack",
+        "logging-stack",
+    ]
     return f"{random.choice(applications)}-{random.randint(1, 5)}"
 
 
@@ -120,14 +138,23 @@ def random_container_status(state: Optional[str] = None) -> str:
         minutes = random.randint(1, 59)
         suffix_h = "s" if hours != 1 else ""
         suffix_m = "s" if minutes != 1 else ""
-        return template.format(hours=hours, minutes=minutes, s=suffix_h, hours2=hours, minutes2=minutes, s2=suffix_h if hours != 1 else "")
+        return template.format(
+            hours=hours,
+            minutes=minutes,
+            s=suffix_h,
+            hours2=hours,
+            minutes2=minutes,
+            s2=suffix_h if hours != 1 else "",
+        )
     elif "exited" in state:
         code = random.choice([0, 1, 137, 143])
         minutes = random.randint(1, 59)
         hours = random.randint(1, 24)
         days = random.randint(1, 7)
         suffix = "s" if minutes != 1 else ""
-        return template.format(code=code, minutes=minutes, hours=hours, days=days, s=suffix)
+        return template.format(
+            code=code, minutes=minutes, hours=hours, days=days, s=suffix
+        )
     elif "restarting" in state:
         seconds = random.randint(1, 59)
         minutes = random.randint(1, 10)
@@ -195,13 +222,15 @@ def random_mount_config() -> List[Dict[str, Any]]:
         else:
             source = f"/host/path/{random_string(6)}"
 
-        mounts.append({
-            "Type": mount_type,
-            "Source": source,
-            "Destination": destination,
-            "Mode": random.choice(["rw", "ro"]),
-            "RW": mount_type == "volume" and destination in ["/data", "/logs"],
-        })
+        mounts.append(
+            {
+                "Type": mount_type,
+                "Source": source,
+                "Destination": destination,
+                "Mode": random.choice(["rw", "ro"]),
+                "RW": mount_type == "volume" and destination in ["/data", "/logs"],
+            }
+        )
 
     return mounts
 
@@ -218,7 +247,9 @@ def random_network_config() -> Dict[str, Any]:
 
     if network_mode == "bridge":
         network["Gateway"] = "172.18.0.1"
-        network["MacAddress"] = f"02:42:{random_hex_string(2).upper()}:{random_hex_string(2).upper()}:{random_hex_string(2).upper()}"
+        network["MacAddress"] = (
+            f"02:42:{random_hex_string(2).upper()}:{random_hex_string(2).upper()}:{random_hex_string(2).upper()}"
+        )
     elif network_mode == "overlay":
         network["Gateway"] = "10.0.1.1"
 
@@ -235,7 +266,9 @@ def random_compose_labels() -> Dict[str, str]:
     if random.choice([True, False]):
         labels["com.docker.compose.project"] = f"project-{random_string(8)}"
         labels["com.docker.compose.service"] = random_string(8)
-        labels["com.docker.compose.version"] = f"{random.randint(2, 3)}.{random.randint(0, 9)}"
+        labels["com.docker.compose.version"] = (
+            f"{random.randint(2, 3)}.{random.randint(0, 9)}"
+        )
 
     # Add some random labels
     num_extra_labels = random.randint(0, 3)
@@ -253,8 +286,12 @@ def random_traefik_labels() -> Dict[str, str]:
 
     if random.choice([True, False]):
         labels["traefik.enable"] = "true"
-        labels["traefik.http.routers.web.rule"] = f"Host(`{random_string(8)}.example.com`)"
-        labels["traefik.http.services.web.loadbalancer.server.port"] = str(random_port())
+        labels["traefik.http.routers.web.rule"] = (
+            f"Host(`{random_string(8)}.example.com`)"
+        )
+        labels["traefik.http.services.web.loadbalancer.server.port"] = str(
+            random_port()
+        )
 
     return labels
 
@@ -262,7 +299,9 @@ def random_traefik_labels() -> Dict[str, str]:
 # ---------------------------
 #   Complete Entity Generators
 # ---------------------------
-def generate_random_container(endpoint_id: int = 1, container_name: Optional[str] = None) -> Dict[str, Any]:
+def generate_random_container(
+    endpoint_id: int = 1, container_name: Optional[str] = None
+) -> Dict[str, Any]:
     """Generate random container data."""
     if not container_name:
         container_name = random_container_name()
@@ -320,8 +359,12 @@ def generate_random_container(endpoint_id: int = 1, container_name: Optional[str
     # Extract compose info from labels if present
     if "com.docker.compose.project" in container["Labels"]:
         container["Compose_Stack"] = container["Labels"]["com.docker.compose.project"]
-        container["Compose_Service"] = container["Labels"].get("com.docker.compose.service", "")
-        container["Compose_Version"] = container["Labels"].get("com.docker.compose.version", "")
+        container["Compose_Service"] = container["Labels"].get(
+            "com.docker.compose.service", ""
+        )
+        container["Compose_Version"] = container["Labels"].get(
+            "com.docker.compose.version", ""
+        )
 
     # Format published ports
     ports_list = []
@@ -329,7 +372,9 @@ def generate_random_container(endpoint_id: int = 1, container_name: Optional[str
         if "PublicPort" in port_info:
             ip = port_info.get("IP", "0.0.0.0")
             ip_prefix = f"{ip}:" if ip != "0.0.0.0" else ""
-            ports_list.append(f'{ip_prefix}{port_info["PublicPort"]}->{port_info["PrivatePort"]}/{port_info["Type"]}')
+            ports_list.append(
+                f'{ip_prefix}{port_info["PublicPort"]}->{port_info["PrivatePort"]}/{port_info["Type"]}'
+            )
         elif "PrivatePort" in port_info:
             ports_list.append(f'{port_info["PrivatePort"]}/{port_info["Type"]}')
     container["PublishedPorts"] = ", ".join(ports_list) if ports_list else "none"
@@ -346,7 +391,9 @@ def generate_random_container(endpoint_id: int = 1, container_name: Optional[str
     return container
 
 
-def generate_random_endpoint(endpoint_id: int = 1, endpoint_name: Optional[str] = None) -> Dict[str, Any]:
+def generate_random_endpoint(
+    endpoint_id: int = 1, endpoint_name: Optional[str] = None
+) -> Dict[str, Any]:
     """Generate random endpoint data."""
     if not endpoint_name:
         endpoint_name = random_endpoint_name()
@@ -384,7 +431,10 @@ def generate_random_endpoint(endpoint_id: int = 1, endpoint_name: Optional[str] 
                 "DockerVersion": f"{random.randint(20, 25)}.0.{random.randint(0, 9)}",
                 "Swarm": endpoint_type == 2,
                 "TotalCPU": random.randint(2, 64),
-                "TotalMemory": random.randint(4, 128) * 1024 * 1024 * 1024,  # GB to bytes
+                "TotalMemory": random.randint(4, 128)
+                * 1024
+                * 1024
+                * 1024,  # GB to bytes
                 "RunningContainerCount": running,
                 "StoppedContainerCount": stopped,
                 "HealthyContainerCount": healthy,
@@ -400,7 +450,9 @@ def generate_random_endpoint(endpoint_id: int = 1, endpoint_name: Optional[str] 
     return endpoint
 
 
-def generate_random_stack(endpoint_id: int = 1, stack_name: Optional[str] = None) -> Dict[str, Any]:
+def generate_random_stack(
+    endpoint_id: int = 1, stack_name: Optional[str] = None
+) -> Dict[str, Any]:
     """Generate random stack data."""
     if not stack_name:
         stack_name = random_stack_name()
@@ -429,7 +481,9 @@ def generate_random_stack(endpoint_id: int = 1, stack_name: Optional[str] = None
 # ---------------------------
 #   Batch Generators
 # ---------------------------
-def generate_random_containers(count: int, endpoint_id: int = 1) -> List[Dict[str, Any]]:
+def generate_random_containers(
+    count: int, endpoint_id: int = 1
+) -> List[Dict[str, Any]]:
     """Generate multiple random containers."""
     containers = []
     for i in range(count):
@@ -584,7 +638,9 @@ def generate_endpoint_edge_cases() -> List[Dict[str, Any]]:
 # ---------------------------
 #   Scenario Generators
 # ---------------------------
-def generate_scenario_all_running(endpoint_id: int = 1, count: int = 5) -> List[Dict[str, Any]]:
+def generate_scenario_all_running(
+    endpoint_id: int = 1, count: int = 5
+) -> List[Dict[str, Any]]:
     """Generate scenario where all containers are running."""
     containers = []
     for i in range(count):
@@ -596,7 +652,9 @@ def generate_scenario_all_running(endpoint_id: int = 1, count: int = 5) -> List[
     return containers
 
 
-def generate_scenario_all_stopped(endpoint_id: int = 1, count: int = 5) -> List[Dict[str, Any]]:
+def generate_scenario_all_stopped(
+    endpoint_id: int = 1, count: int = 5
+) -> List[Dict[str, Any]]:
     """Generate scenario where all containers are stopped."""
     containers = []
     for i in range(count):
@@ -608,7 +666,9 @@ def generate_scenario_all_stopped(endpoint_id: int = 1, count: int = 5) -> List[
     return containers
 
 
-def generate_scenario_mixed_health(endpoint_id: int = 1, count: int = 10) -> List[Dict[str, Any]]:
+def generate_scenario_mixed_health(
+    endpoint_id: int = 1, count: int = 10
+) -> List[Dict[str, Any]]:
     """Generate scenario with mixed health statuses."""
     containers = []
     health_statuses = ["healthy", "unhealthy", "starting", "unknown"]
@@ -648,7 +708,7 @@ def generate_scenario_compose_stack(endpoint_id: int = 1) -> Dict[str, Any]:
             "Status": 1,
             "EndpointId": endpoint_id,
             "ConfigEntryId": "test_portainer_entry_123",
-        }
+        },
     }
 
 
@@ -660,11 +720,16 @@ def create_test_scenario(name: str, **kwargs) -> Dict[str, Any]:
     scenarios = {
         "single_container": lambda: {
             "endpoints": {1: generate_random_endpoint(1)},
-            "containers": {f"1_{random_container_name()}": generate_random_container(1)},
+            "containers": {
+                f"1_{random_container_name()}": generate_random_container(1)
+            },
             "stacks": {},
         },
         "multiple_endpoints": lambda: {
-            "endpoints": {i + 1: generate_random_endpoint(i + 1) for i in range(kwargs.get("count", 3))},
+            "endpoints": {
+                i + 1: generate_random_endpoint(i + 1)
+                for i in range(kwargs.get("count", 3))
+            },
             "containers": {},
             "stacks": {},
         },
@@ -682,7 +747,9 @@ def create_test_scenario(name: str, **kwargs) -> Dict[str, Any]:
         raise ValueError(f"Unknown scenario: {name}")
 
 
-def randomize_existing_data(data: Dict[str, Any], randomization_level: float = 0.1) -> Dict[str, Any]:
+def randomize_existing_data(
+    data: Dict[str, Any], randomization_level: float = 0.1
+) -> Dict[str, Any]:
     """Randomize existing data for testing variations."""
     if not isinstance(data, dict):
         return data
@@ -693,7 +760,11 @@ def randomize_existing_data(data: Dict[str, Any], randomization_level: float = 0
             randomized[key] = randomize_existing_data(value, randomization_level)
         elif isinstance(value, list):
             randomized[key] = [
-                randomize_existing_data(item, randomization_level) if isinstance(item, dict) else item
+                (
+                    randomize_existing_data(item, randomization_level)
+                    if isinstance(item, dict)
+                    else item
+                )
                 for item in value
             ]
         elif isinstance(value, str) and random.random() < randomization_level:

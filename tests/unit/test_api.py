@@ -106,7 +106,9 @@ class TestPortainerAPI:
         mock_response.status_code = 500
         mock_response.content = json.dumps(get_error_response_500()).encode()
         mock_response.json.return_value = get_error_response_500()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error"
+        )
         mock_session.get.return_value = mock_response
 
         api._session = mock_session
@@ -133,9 +135,7 @@ class TestPortainerAPI:
         assert api._connected is True
         assert api._error == ""
         mock_session.get.assert_called_once_with(
-            "http://localhost:9000/api/endpoints",
-            params=None,
-            timeout=10
+            "http://localhost:9000/api/endpoints", params=None, timeout=10
         )
 
     def test_query_post_success(self, api, mock_session):
@@ -155,7 +155,7 @@ class TestPortainerAPI:
         mock_session.post.assert_called_once_with(
             "http://localhost:9000/api/containers/abc123/recreate",
             json={"pullImage": True},
-            timeout=10
+            timeout=10,
         )
 
     def test_query_put_success(self, api, mock_session):
@@ -413,7 +413,9 @@ class TestPortainerAPI:
         result = api.get_stacks("1")
 
         # Should filter stacks for endpoint 1
-        endpoint_1_stacks = [stack for stack in get_stacks_response() if stack["EndpointId"] == 1]
+        endpoint_1_stacks = [
+            stack for stack in get_stacks_response() if stack["EndpointId"] == 1
+        ]
         assert len(result) == len(endpoint_1_stacks)
         assert result[0]["id"] == "1"
         assert result[0]["name"] == "web-stack"
@@ -448,7 +450,7 @@ class TestPortainerAPI:
         mock_session.post.assert_called_once_with(
             "http://localhost:9000/api/endpoints/1/docker/containers/abc123def456/recreate",
             json={"pullImage": True},
-            timeout=10
+            timeout=10,
         )
 
     def test_recreate_container_without_pull_image(self, api, mock_session):
@@ -466,7 +468,7 @@ class TestPortainerAPI:
         mock_session.post.assert_called_once_with(
             "http://localhost:9000/api/endpoints/1/docker/containers/abc123def456/recreate",
             json={},
-            timeout=10
+            timeout=10,
         )
 
     def test_recreate_container_with_recreate_in_path_logging(self, api, mock_session):
@@ -475,13 +477,17 @@ class TestPortainerAPI:
         mock_response.status_code = 500  # Force error for logging test
         mock_response.content = json.dumps(get_error_response_500()).encode()
         mock_response.json.return_value = get_error_response_500()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error"
+        )
         mock_session.post.return_value = mock_response
 
         api._session = mock_session
 
         # Should handle error and log with container context
-        result = api.query("endpoints/1/docker/containers/abc123def456/recreate", "POST", {})
+        result = api.query(
+            "endpoints/1/docker/containers/abc123def456/recreate", "POST", {}
+        )
 
         assert result is None
         # Verify the call was made (even though it failed)
@@ -498,7 +504,7 @@ class TestPortainerAPI:
         api._session = mock_session
 
         # Mock the lock object itself to verify acquire/release are called
-        with patch.object(api, 'lock') as mock_lock:
+        with patch.object(api, "lock") as mock_lock:
             result = api.query("endpoints")
 
             assert result == get_endpoints_response()
@@ -516,7 +522,7 @@ class TestPortainerAPI:
         api._session = mock_session
 
         # Mock the lock object to simulate acquire timeout
-        with patch.object(api, 'lock') as mock_lock:
+        with patch.object(api, "lock") as mock_lock:
             mock_lock.acquire.side_effect = Exception("Lock timeout")
 
             result = api.query("endpoints")

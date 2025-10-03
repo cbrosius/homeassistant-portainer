@@ -42,10 +42,12 @@ class TestPortainerIntegration:
             mock_setup.return_value = True
 
             # Add config entry to hass
-            if not hasattr(hass, 'config_entries'):
+            if not hasattr(hass, "config_entries"):
                 hass.config_entries = MagicMock()
                 hass.config_entries.async_add = AsyncMock()
-                hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
+                hass.config_entries.async_entries = MagicMock(
+                    return_value=[config_entry]
+                )
 
             result = await mock_setup(hass, config_entry)
             assert result is True
@@ -92,7 +94,9 @@ class TestPortainerIntegration:
         mock_entity_registry = MagicMock()
         mock_entity_registry.async_get_or_create = MagicMock()
 
-        with patch("homeassistant.helpers.entity_registry.EntityRegistry") as mock_registry:
+        with patch(
+            "homeassistant.helpers.entity_registry.EntityRegistry"
+        ) as mock_registry:
             mock_registry.return_value = mock_entity_registry
 
             # Simulate entity creation during platform setup
@@ -121,7 +125,9 @@ class TestPortainerIntegration:
         ]
 
         # Mock the button platform setup
-        with patch("custom_components.portainer.button.setup_platform") as mock_button_setup:
+        with patch(
+            "custom_components.portainer.button.setup_platform"
+        ) as mock_button_setup:
             mock_button_setup.return_value = True
 
             # In a real scenario, this would create the button entities
@@ -132,10 +138,14 @@ class TestPortainerIntegration:
     async def test_config_flow_integration(self, hass):
         """Test config flow integration."""
         # Mock config flow
-        with patch("custom_components.portainer.config_flow.PortainerConfigFlow") as mock_flow:
+        with patch(
+            "custom_components.portainer.config_flow.PortainerConfigFlow"
+        ) as mock_flow:
             mock_flow_instance = MagicMock()
             mock_flow.return_value = mock_flow_instance
-            mock_flow_instance.async_step_user = AsyncMock(return_value={"type": "form"})
+            mock_flow_instance.async_step_user = AsyncMock(
+                return_value={"type": "form"}
+            )
 
             # Test that config flow can be initiated
             flow_result = await mock_flow_instance.async_step_user()
@@ -147,7 +157,9 @@ class TestPortainerIntegration:
         config_entry = setup_integration
 
         # Mock coordinator
-        with patch("custom_components.portainer.coordinator.DataUpdateCoordinator") as mock_coordinator:
+        with patch(
+            "custom_components.portainer.coordinator.DataUpdateCoordinator"
+        ) as mock_coordinator:
             mock_coordinator_instance = MagicMock()
             mock_coordinator.return_value = mock_coordinator_instance
             mock_coordinator_instance.async_refresh = AsyncMock()
@@ -175,7 +187,9 @@ class TestPortainerIntegration:
     async def test_error_handling_integration(self, hass):
         """Test error handling in integration."""
         # Mock API errors
-        with patch("custom_components.portainer.api.PortainerAPI.get_containers") as mock_api:
+        with patch(
+            "custom_components.portainer.api.PortainerAPI.get_containers"
+        ) as mock_api:
             mock_api.side_effect = Exception("API Error")
 
             # Test that integration handles API errors gracefully

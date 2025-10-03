@@ -73,6 +73,7 @@ class TestEnvironment:
 
         if self.temp_dir and os.path.exists(self.temp_dir):
             import shutil
+
             shutil.rmtree(self.temp_dir)
 
     def mock_api_response(self, endpoint: str, response: Dict[str, Any]):
@@ -85,15 +86,24 @@ class TestEnvironment:
 
     def patch_api_call(self, method_name: str, return_value: Any = None):
         """Patch API method call."""
-        return patch(f"custom_components.portainer.api.PortainerAPI.{method_name}", return_value=return_value)
+        return patch(
+            f"custom_components.portainer.api.PortainerAPI.{method_name}",
+            return_value=return_value,
+        )
 
     def patch_config_flow(self, method_name: str, return_value: Any = None):
         """Patch config flow method."""
-        return patch(f"custom_components.portainer.config_flow.{method_name}", return_value=return_value)
+        return patch(
+            f"custom_components.portainer.config_flow.{method_name}",
+            return_value=return_value,
+        )
 
     def patch_coordinator(self, method_name: str, return_value: Any = None):
         """Patch coordinator method."""
-        return patch(f"custom_components.portainer.coordinator.{method_name}", return_value=return_value)
+        return patch(
+            f"custom_components.portainer.coordinator.{method_name}",
+            return_value=return_value,
+        )
 
 
 def get_test_config() -> Dict[str, Any]:
@@ -131,7 +141,9 @@ def get_test_integration_config() -> Dict[str, Any]:
     }
 
 
-async def async_setup_test_integration(hass: HomeAssistant, config: Dict[str, Any] = None) -> ConfigEntry:
+async def async_setup_test_integration(
+    hass: HomeAssistant, config: Dict[str, Any] = None
+) -> ConfigEntry:
     """Set up Portainer integration for testing."""
     if config is None:
         config = get_test_integration_config()
@@ -146,7 +158,7 @@ async def async_setup_test_integration(hass: HomeAssistant, config: Dict[str, An
     )
 
     # Add to hass config entries
-    if not hasattr(hass, 'config_entries'):
+    if not hasattr(hass, "config_entries"):
         hass.config_entries = MagicMock()
         hass.config_entries.async_entries = MagicMock(return_value=[])
         hass.config_entries.async_add = MagicMock()

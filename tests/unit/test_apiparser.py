@@ -286,7 +286,7 @@ class TestAPIParsers:
             "name": "test_key",
             "type": "str",
             "default": "fallback",
-            "default_val": "fallback"
+            "default_val": "fallback",
         }
 
         _process_value_definition(target_dict, source_entry, val_def)
@@ -331,10 +331,7 @@ class TestAPIParsers:
         """Test _process_value_definition with timestamp conversion."""
         target_dict = {}
         source_entry = {"timestamp": 1609459200}
-        val_def = {
-            "name": "converted_time",
-            "convert": "utc_from_timestamp"
-        }
+        val_def = {"name": "converted_time", "convert": "utc_from_timestamp"}
 
         _process_value_definition(target_dict, source_entry, val_def)
 
@@ -345,10 +342,7 @@ class TestAPIParsers:
         """Test _process_value_definition with ISO string conversion."""
         target_dict = {}
         source_entry = {"iso_time": "2021-01-01T00:00:00Z"}
-        val_def = {
-            "name": "converted_time",
-            "convert": "utc_from_iso_string"
-        }
+        val_def = {"name": "converted_time", "convert": "utc_from_iso_string"}
 
         _process_value_definition(target_dict, source_entry, val_def)
 
@@ -370,10 +364,7 @@ class TestAPIParsers:
 
     def test_parse_api_with_list_source(self):
         """Test parse_api with list source."""
-        source = [
-            {"id": 1, "name": "item1"},
-            {"id": 2, "name": "item2"}
-        ]
+        source = [{"id": 1, "name": "item1"}, {"id": 2, "name": "item2"}]
         val_defs = [{"name": "name"}]
 
         result = parse_api(data={}, source=source, key="id", vals=val_defs)
@@ -396,12 +387,14 @@ class TestAPIParsers:
         """Test parse_api with only filter."""
         source = [
             {"id": 1, "type": "A", "name": "item1"},
-            {"id": 2, "type": "B", "name": "item2"}
+            {"id": 2, "type": "B", "name": "item2"},
         ]
         only_filter = [{"key": "type", "value": "A"}]
         val_defs = [{"name": "name"}]
 
-        result = parse_api(data={}, source=source, key="id", vals=val_defs, only=only_filter)
+        result = parse_api(
+            data={}, source=source, key="id", vals=val_defs, only=only_filter
+        )
 
         assert 1 in result
         assert 2 not in result
@@ -411,12 +404,14 @@ class TestAPIParsers:
         """Test parse_api with skip filter."""
         source = [
             {"id": 1, "status": "active", "name": "item1"},
-            {"id": 2, "status": "inactive", "name": "item2"}
+            {"id": 2, "status": "inactive", "name": "item2"},
         ]
         skip_filter = [{"name": "status", "value": "inactive"}]
         val_defs = [{"name": "name"}]
 
-        result = parse_api(data={}, source=source, key="id", vals=val_defs, skip=skip_filter)
+        result = parse_api(
+            data={}, source=source, key="id", vals=val_defs, skip=skip_filter
+        )
 
         assert 1 in result
         assert 2 not in result
@@ -428,7 +423,9 @@ class TestAPIParsers:
         val_defs = [{"name": "name"}]
         ensure_vals = [{"name": "status", "default": "unknown"}]
 
-        result = parse_api(data={}, source=source, key="id", vals=val_defs, ensure_vals=ensure_vals)
+        result = parse_api(
+            data={}, source=source, key="id", vals=val_defs, ensure_vals=ensure_vals
+        )
 
         assert result[1]["name"] == "item1"
         assert result[1]["status"] == "unknown"
@@ -438,7 +435,7 @@ class TestAPIParsers:
         entry = {"type": "A", "status": "active"}
         only_filter = [
             {"key": "type", "value": "A"},
-            {"key": "status", "value": "active"}
+            {"key": "status", "value": "active"},
         ]
 
         assert matches_only(entry, only_filter) is True
@@ -448,7 +445,7 @@ class TestAPIParsers:
         entry = {"type": "A", "status": "inactive"}
         only_filter = [
             {"key": "type", "value": "A"},
-            {"key": "status", "value": "active"}
+            {"key": "status", "value": "active"},
         ]
 
         assert matches_only(entry, only_filter) is False
@@ -458,7 +455,7 @@ class TestAPIParsers:
         entry = {"type": "B", "status": "active"}
         only_filter = [
             {"key": "type", "value": "A"},
-            {"key": "status", "value": "active"}
+            {"key": "status", "value": "active"},
         ]
 
         assert matches_only(entry, only_filter) is False
@@ -499,7 +496,7 @@ class TestAPIParsers:
             [
                 {"name": "combined_key", "action": "combine"},
                 {"key": "existing_key"},
-                {"text": "_suffix"}
+                {"text": "_suffix"},
             ]
         ]
 
@@ -516,7 +513,7 @@ class TestAPIParsers:
                 {"name": "combined_key", "action": "combine"},
                 {"key": "key1"},
                 {"text": "_"},
-                {"key": "key2"}
+                {"key": "key2"},
             ]
         ]
 
@@ -531,7 +528,7 @@ class TestAPIParsers:
             [
                 {"name": "combined_key", "action": "combine"},
                 {"key": "existing_key"},
-                {"text": "_suffix"}
+                {"text": "_suffix"},
             ]
         ]
 
@@ -547,7 +544,7 @@ class TestAPIParsers:
             [
                 {"name": "combined_key", "action": "combine"},
                 {"key": "nonexistent_key"},
-                {"text": "_suffix"}
+                {"text": "_suffix"},
             ]
         ]
 
@@ -565,11 +562,13 @@ class TestAPIParsers:
                 {"key": "name"},
                 {"text": " ("},
                 {"key": "status"},
-                {"text": ")"}
+                {"text": ")"},
             ]
         ]
 
-        result = parse_api(data={}, source=source, key="id", vals=val_defs, val_proc=val_proc)
+        result = parse_api(
+            data={}, source=source, key="id", vals=val_defs, val_proc=val_proc
+        )
 
         assert result[1]["name"] == "item1"
         assert result[1]["display_name"] == "item1 (active)"
@@ -628,14 +627,7 @@ class TestAPIParsers:
 
     def test_get_nested_value_complex_path(self):
         """Test nested value extraction with complex path."""
-        data = {
-            "level1": {
-                "level2": [
-                    {"key": "value1"},
-                    {"key": "value2"}
-                ]
-            }
-        }
+        data = {"level1": {"level2": [{"key": "value1"}, {"key": "value2"}]}}
 
         # Test accessing array element
         result = _get_nested_value(data, "level1/level2/0/key")
@@ -654,7 +646,12 @@ class TestAPIParsers:
             {"id": "invalid", "name": "item3"},  # Invalid ID type
         ]
 
-        result = parse_api(data={}, source=source, key="id", vals=[{"name": "name", "default": "unknown"}])
+        result = parse_api(
+            data={},
+            source=source,
+            key="id",
+            vals=[{"name": "name", "default": "unknown"}],
+        )
 
         # Should handle gracefully and only process valid entries
         assert 2 in result

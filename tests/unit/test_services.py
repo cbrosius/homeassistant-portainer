@@ -84,7 +84,9 @@ class TestPortainerServices:
             ((Mock(), SERVICE_RECREATE_CONTAINER),),
         ]
 
-        actual_calls = [call[0] for call in mock_hass.services.async_remove.call_args_list]
+        actual_calls = [
+            call[0] for call in mock_hass.services.async_remove.call_args_list
+        ]
         service_names = [call[1] for call in actual_calls]
 
         assert SERVICE_PERFORM_CONTAINER_ACTION in service_names
@@ -107,23 +109,17 @@ class TestPortainerServices:
 
             # Mock hass data
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {
-                        "coordinator": mock_coordinator
-                    }
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             # Mock service call
             call = Mock()
-            call.data = {
-                ATTR_CONTAINER_DEVICES: ["device_1"],
-                "pull_image": True
-            }
+            call.data = {ATTR_CONTAINER_DEVICES: ["device_1"], "pull_image": True}
             call.hass = mock_hass
 
             # Import and call the handler
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Verify coordinator was called
@@ -140,6 +136,7 @@ class TestPortainerServices:
         call.hass = mock_hass
 
         from custom_components.portainer.services import _handle_recreate_container
+
         await _handle_recreate_container(call)
 
         # Should return early without error
@@ -157,12 +154,15 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Should handle gracefully
 
     @pytest.mark.asyncio
-    async def test_handle_recreate_container_multiple_devices(self, mock_hass, mock_coordinator):
+    async def test_handle_recreate_container_multiple_devices(
+        self, mock_hass, mock_coordinator
+    ):
         """Test container recreation with multiple devices."""
         # Mock device registry entries
         device1 = Mock()
@@ -181,27 +181,28 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {
-                        "coordinator": mock_coordinator
-                    }
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
             call.data = {
                 ATTR_CONTAINER_DEVICES: ["device_1", "device_2"],
-                "pull_image": False
+                "pull_image": False,
             }
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Should call recreate for both containers
             assert mock_coordinator.async_recreate_container.call_count == 2
-            mock_coordinator.async_recreate_container.assert_any_call("1", "web-server", False)
-            mock_coordinator.async_recreate_container.assert_any_call("1", "database", False)
+            mock_coordinator.async_recreate_container.assert_any_call(
+                "1", "web-server", False
+            )
+            mock_coordinator.async_recreate_container.assert_any_call(
+                "1", "database", False
+            )
 
     @pytest.mark.asyncio
     async def test_handle_recreate_container_different_config_entries(self, mock_hass):
@@ -236,7 +237,7 @@ class TestPortainerServices:
             mock_hass.data = {
                 "portainer": {
                     "entry_1": {"coordinator": coordinator1},
-                    "entry_2": {"coordinator": coordinator2}
+                    "entry_2": {"coordinator": coordinator2},
                 }
             }
 
@@ -245,14 +246,21 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Should call recreate for both coordinators
-            coordinator1.async_recreate_container.assert_called_once_with("1", "web-server", True)
-            coordinator2.async_recreate_container.assert_called_once_with("2", "database", True)
+            coordinator1.async_recreate_container.assert_called_once_with(
+                "1", "web-server", True
+            )
+            coordinator2.async_recreate_container.assert_called_once_with(
+                "2", "database", True
+            )
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_success(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_success(
+        self, mock_hass, mock_coordinator
+    ):
         """Test successful container action execution."""
         # Mock device registry
         device_entry = Mock()
@@ -269,40 +277,38 @@ class TestPortainerServices:
             mock_coordinator.api.query = AsyncMock()
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {
-                        "coordinator": mock_coordinator
-                    }
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             # Set up container data for ID lookup
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API call was made
             mock_coordinator.api.query.assert_called_once_with(
-                "endpoints/1/docker/containers/abc123def456/start",
-                "POST",
-                {}
+                "endpoints/1/docker/containers/abc123def456/start", "POST", {}
             )
             mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_container_not_found(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_container_not_found(
+        self, mock_hass, mock_coordinator
+    ):
         """Test container action with non-existent container."""
         with patch("custom_components.portainer.services.dr") as mock_dr:
             device_entry = Mock()
@@ -315,26 +321,26 @@ class TestPortainerServices:
             mock_coordinator.get_specific_container = Mock(return_value=None)
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Should not call API for non-existent container
             mock_coordinator.api.query.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_stack_action_success(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_stack_action_success(
+        self, mock_hass, mock_coordinator
+    ):
         """Test successful stack action execution."""
         # Mock device registry
         device_entry = Mock()
@@ -352,40 +358,33 @@ class TestPortainerServices:
 
             # Set up stack data
             mock_coordinator.data = {
-                "stacks": {
-                    1: {
-                        "Name": "web-stack",
-                        "EndpointId": 1
-                    }
-                }
+                "stacks": {1: {"Name": "web-stack", "EndpointId": 1}}
             }
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_STACK_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_STACK_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_stack_action
+            from custom_components.portainer.services import (
+                _handle_perform_stack_action,
+            )
+
             await _handle_perform_stack_action(call)
 
             # Verify API call was made
             mock_coordinator.api.query.assert_called_once_with(
-                "stacks/1/start?endpointId=1",
-                "POST",
-                {}
+                "stacks/1/start?endpointId=1", "POST", {}
             )
             mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_stack_action_invalid_device_id(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_stack_action_invalid_device_id(
+        self, mock_hass, mock_coordinator
+    ):
         """Test stack action with invalid device identifier."""
         with patch("custom_components.portainer.services.dr") as mock_dr:
             device_entry = Mock()
@@ -394,26 +393,26 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = device_entry
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_STACK_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_STACK_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_stack_action
+            from custom_components.portainer.services import (
+                _handle_perform_stack_action,
+            )
+
             await _handle_perform_stack_action(call)
 
             # Should not call API for invalid stack ID
             mock_coordinator.api.query.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_stack_action_stack_not_found(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_stack_action_stack_not_found(
+        self, mock_hass, mock_coordinator
+    ):
         """Test stack action with non-existent stack."""
         with patch("custom_components.portainer.services.dr") as mock_dr:
             device_entry = Mock()
@@ -425,19 +424,17 @@ class TestPortainerServices:
             mock_coordinator.data = {"stacks": {}}
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_STACK_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_STACK_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_stack_action
+            from custom_components.portainer.services import (
+                _handle_perform_stack_action,
+            )
+
             await _handle_perform_stack_action(call)
 
             # Should not call API for non-existent stack
@@ -450,7 +447,10 @@ class TestPortainerServices:
         call.data = {ATTR_CONTAINER_DEVICES: ["device_1"]}
         call.hass = mock_hass
 
-        from custom_components.portainer.services import _handle_perform_container_action
+        from custom_components.portainer.services import (
+            _handle_perform_container_action,
+        )
+
         await _handle_perform_container_action(call)
 
         # Should handle gracefully without action
@@ -462,13 +462,18 @@ class TestPortainerServices:
         call.data = {ATTR_ACTION: "start"}
         call.hass = mock_hass
 
-        from custom_components.portainer.services import _handle_perform_container_action
+        from custom_components.portainer.services import (
+            _handle_perform_container_action,
+        )
+
         await _handle_perform_container_action(call)
 
         # Should return early without devices
 
     @pytest.mark.asyncio
-    async def test_service_error_handling_api_failure(self, mock_hass, mock_coordinator):
+    async def test_service_error_handling_api_failure(
+        self, mock_hass, mock_coordinator
+    ):
         """Test service error handling with API failure."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -482,31 +487,33 @@ class TestPortainerServices:
 
             # Mock API failure
             mock_coordinator.api.query = AsyncMock(side_effect=Exception("API Error"))
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
             # Should not raise exception
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
     @pytest.mark.asyncio
-    async def test_service_call_with_default_pull_image(self, mock_hass, mock_coordinator):
+    async def test_service_call_with_default_pull_image(
+        self, mock_hass, mock_coordinator
+    ):
         """Test service call with default pull_image value."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -519,9 +526,7 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
@@ -530,6 +535,7 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             mock_coordinator.async_recreate_container.assert_called_once_with(
@@ -537,7 +543,9 @@ class TestPortainerServices:
             )
 
     @pytest.mark.asyncio
-    async def test_service_call_with_explicit_pull_image_false(self, mock_hass, mock_coordinator):
+    async def test_service_call_with_explicit_pull_image_false(
+        self, mock_hass, mock_coordinator
+    ):
         """Test service call with explicit pull_image false."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -550,19 +558,15 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_CONTAINER_DEVICES: ["device_1"],
-                "pull_image": False
-            }
+            call.data = {ATTR_CONTAINER_DEVICES: ["device_1"], "pull_image": False}
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             mock_coordinator.async_recreate_container.assert_called_once_with(
@@ -588,10 +592,12 @@ class TestPortainerServices:
 
         # Check schema validation for container actions
         schema = container_service_call[1]["schema"]
-        assert hasattr(schema, 'extend')  # Should be a voluptuous schema
+        assert hasattr(schema, "extend")  # Should be a voluptuous schema
 
     @pytest.mark.asyncio
-    async def test_device_identifier_parsing_edge_cases(self, mock_hass, mock_coordinator):
+    async def test_device_identifier_parsing_edge_cases(
+        self, mock_hass, mock_coordinator
+    ):
         """Test device identifier parsing with edge cases."""
         # Test with malformed identifier
         device_entry = Mock()
@@ -605,19 +611,17 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "start",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "start", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Should handle malformed identifier gracefully
@@ -642,6 +646,7 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Should skip devices from other domains
@@ -665,27 +670,27 @@ class TestPortainerServices:
 
             mock_coordinator.api.query = AsyncMock()
 
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "restart",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "restart", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
             with patch("custom_components.portainer.services._LOGGER") as mock_logger:
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Should log success
@@ -706,27 +711,27 @@ class TestPortainerServices:
 
             # Mock API error
             mock_coordinator.api.query = AsyncMock(side_effect=Exception("API Error"))
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "restart",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "restart", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
             with patch("custom_components.portainer.services._LOGGER") as mock_logger:
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Should log error
@@ -742,7 +747,9 @@ class TestPortainerServices:
         assert ATTR_STACK_DEVICES == "stack_devices"
 
     @pytest.mark.asyncio
-    async def test_container_action_different_actions(self, mock_hass, mock_coordinator):
+    async def test_container_action_different_actions(
+        self, mock_hass, mock_coordinator
+    ):
         """Test container actions with different action types."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -759,36 +766,34 @@ class TestPortainerServices:
                 mock_er.async_entries_for_device = Mock(return_value=[])
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             actions = ["start", "stop", "restart", "kill"]
 
             for action in actions:
                 call = Mock()
-                call.data = {
-                    ATTR_ACTION: action,
-                    ATTR_CONTAINER_DEVICES: ["device_1"]
-                }
+                call.data = {ATTR_ACTION: action, ATTR_CONTAINER_DEVICES: ["device_1"]}
                 call.hass = mock_hass
 
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Verify correct endpoint called for each action
                 mock_coordinator.api.query.assert_called_with(
-                    f"endpoints/1/docker/containers/abc123def456/{action}",
-                    "POST",
-                    {}
+                    f"endpoints/1/docker/containers/abc123def456/{action}", "POST", {}
                 )
 
     @pytest.mark.asyncio
@@ -806,38 +811,29 @@ class TestPortainerServices:
 
             mock_coordinator.api.query = AsyncMock()
             mock_coordinator.data = {
-                "stacks": {
-                    "1": {
-                        "Name": "web-stack",
-                        "EndpointId": 1
-                    }
-                }
+                "stacks": {"1": {"Name": "web-stack", "EndpointId": 1}}
             }
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             actions = ["start", "stop"]
 
             for action in actions:
                 call = Mock()
-                call.data = {
-                    ATTR_ACTION: action,
-                    ATTR_STACK_DEVICES: ["device_1"]
-                }
+                call.data = {ATTR_ACTION: action, ATTR_STACK_DEVICES: ["device_1"]}
                 call.hass = mock_hass
 
-                from custom_components.portainer.services import _handle_perform_stack_action
+                from custom_components.portainer.services import (
+                    _handle_perform_stack_action,
+                )
+
                 await _handle_perform_stack_action(call)
 
                 # Verify correct endpoint called for each action
                 mock_coordinator.api.query.assert_called_with(
-                    f"stacks/1/{action}?endpointId=1",
-                    "POST",
-                    {}
+                    f"stacks/1/{action}?endpointId=1", "POST", {}
                 )
 
     @pytest.mark.asyncio
@@ -851,6 +847,7 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             from custom_components.portainer.services import _handle_recreate_container
+
             await _handle_recreate_container(call)
 
             # Should handle gracefully
@@ -876,14 +873,19 @@ class TestPortainerServices:
             call.hass = mock_hass
 
             with patch("custom_components.portainer.services._LOGGER") as mock_logger:
-                from custom_components.portainer.services import _handle_recreate_container
+                from custom_components.portainer.services import (
+                    _handle_recreate_container,
+                )
+
                 await _handle_recreate_container(call)
 
                 # Should log error for missing coordinator
                 mock_logger.error.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_does_not_remove_device(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_does_not_remove_device(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal via service does not remove the device (current behavior)."""
         # Mock device registry
         device_entry = Mock()
@@ -900,35 +902,31 @@ class TestPortainerServices:
             mock_coordinator.api.query = AsyncMock()
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {
-                        "coordinator": mock_coordinator
-                    }
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             # Set up container data for ID lookup
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "remove", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API call was made to remove container
             mock_coordinator.api.query.assert_called_once_with(
-                "endpoints/1/docker/containers/abc123def456/remove",
-                "POST",
-                {}
+                "endpoints/1/docker/containers/abc123def456/remove", "POST", {}
             )
 
             # Device should now be removed (fixed behavior)
@@ -937,7 +935,9 @@ class TestPortainerServices:
             mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_with_force_and_volumes(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_with_force_and_volumes(
+        self, mock_hass, mock_coordinator
+    ):
         """Test container removal via service with force and remove_volumes options."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_database")}
@@ -952,41 +952,46 @@ class TestPortainerServices:
             mock_coordinator.api.query = AsyncMock()
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "xyz789abc123",
-                "Name": "database",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "xyz789abc123",
+                    "Name": "database",
+                    "EndpointId": "1",
+                }
+            )
 
             call = Mock()
             call.data = {
                 ATTR_ACTION: "remove",
                 ATTR_CONTAINER_DEVICES: ["device_1"],
                 "force": True,
-                "remove_volumes": True
+                "remove_volumes": True,
             }
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API call was made with correct parameters
             mock_coordinator.api.query.assert_called_once_with(
                 "endpoints/1/docker/containers/xyz789abc123/remove",
                 "POST",
-                {"force": True, "remove_volumes": True}
+                {"force": True, "remove_volumes": True},
             )
 
             # Device should now be removed (fixed behavior)
             mock_device_reg.async_remove_device.assert_called_once_with("device_1")
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_removes_device_and_entities(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_removes_device_and_entities(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal via service removes the device and its entities (fixed behavior)."""
         # Mock device registry
         device_entry = Mock()
@@ -1009,53 +1014,55 @@ class TestPortainerServices:
             mock_entity_reg.async_remove = Mock()
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(return_value=[mock_entity_entry])
+                mock_er.async_entries_for_device = Mock(
+                    return_value=[mock_entity_entry]
+                )
 
             # Mock API query
             mock_coordinator.api.query = AsyncMock()
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {
-                        "coordinator": mock_coordinator
-                    }
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             # Set up container data for ID lookup
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "remove", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API call was made to remove container
             mock_coordinator.api.query.assert_called_once_with(
-                "endpoints/1/docker/containers/abc123def456/remove",
-                "POST",
-                {}
+                "endpoints/1/docker/containers/abc123def456/remove", "POST", {}
             )
 
             # Verify device was removed from device registry
             mock_device_reg.async_remove_device.assert_called_once_with("device_1")
 
             # Verify entity was removed from entity registry
-            mock_entity_reg.async_remove.assert_called_once_with("sensor.web_server_cpu_usage")
+            mock_entity_reg.async_remove.assert_called_once_with(
+                "sensor.web_server_cpu_usage"
+            )
 
             mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_device_removal_failure(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_device_removal_failure(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal handles device removal failure gracefully."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -1065,7 +1072,9 @@ class TestPortainerServices:
         with patch("custom_components.portainer.services.dr") as mock_dr:
             mock_device_reg = Mock()
             mock_device_reg.async_get = Mock(return_value=device_entry)
-            mock_device_reg.async_remove_device = Mock(side_effect=Exception("Device removal failed"))
+            mock_device_reg.async_remove_device = Mock(
+                side_effect=Exception("Device removal failed")
+            )
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_entity_reg = Mock()
@@ -1075,27 +1084,27 @@ class TestPortainerServices:
                 mock_er.async_entries_for_device = Mock(return_value=[])
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "remove", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
             with patch("custom_components.portainer.services._LOGGER") as mock_logger:
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Should log error for device removal failure
@@ -1105,7 +1114,9 @@ class TestPortainerServices:
             mock_coordinator.api.query.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_entity_removal_failure(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_entity_removal_failure(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal handles entity removal failure gracefully."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -1122,33 +1133,37 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             mock_entity_reg = Mock()
-            mock_entity_reg.async_remove = Mock(side_effect=Exception("Entity removal failed"))
+            mock_entity_reg.async_remove = Mock(
+                side_effect=Exception("Entity removal failed")
+            )
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(return_value=[mock_entity_entry])
+                mock_er.async_entries_for_device = Mock(
+                    return_value=[mock_entity_entry]
+                )
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "remove", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
             with patch("custom_components.portainer.services._LOGGER") as mock_logger:
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Should log error for entity removal failure
@@ -1159,7 +1174,9 @@ class TestPortainerServices:
             mock_device_reg.async_remove_device.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_multiple_devices(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_multiple_devices(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal works correctly with multiple devices."""
         # Mock device registry entries
         device1 = Mock()
@@ -1188,30 +1205,33 @@ class TestPortainerServices:
             mock_entity_reg.async_remove = Mock()
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(side_effect=[
-                    [mock_entity1], [mock_entity2]
-                ])
+                mock_er.async_entries_for_device = Mock(
+                    side_effect=[[mock_entity1], [mock_entity2]]
+                )
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(side_effect=[
-                {"Id": "abc123def456", "Name": "web-server", "EndpointId": "1"},
-                {"Id": "xyz789ghi012", "Name": "database", "EndpointId": "1"}
-            ])
+            mock_coordinator.get_specific_container = Mock(
+                side_effect=[
+                    {"Id": "abc123def456", "Name": "web-server", "EndpointId": "1"},
+                    {"Id": "xyz789ghi012", "Name": "database", "EndpointId": "1"},
+                ]
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
             call.data = {
                 ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1", "device_2"]
+                ATTR_CONTAINER_DEVICES: ["device_1", "device_2"],
             }
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API calls were made for both containers
@@ -1228,7 +1248,9 @@ class TestPortainerServices:
             mock_entity_reg.async_remove.assert_any_call("sensor.database_memory_usage")
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_remove_no_entities_for_device(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_remove_no_entities_for_device(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that container removal works when device has no entities."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -1247,26 +1269,26 @@ class TestPortainerServices:
                 mock_er.async_entries_for_device = Mock(return_value=[])
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             call = Mock()
-            call.data = {
-                ATTR_ACTION: "remove",
-                ATTR_CONTAINER_DEVICES: ["device_1"]
-            }
+            call.data = {ATTR_ACTION: "remove", ATTR_CONTAINER_DEVICES: ["device_1"]}
             call.hass = mock_hass
 
-            from custom_components.portainer.services import _handle_perform_container_action
+            from custom_components.portainer.services import (
+                _handle_perform_container_action,
+            )
+
             await _handle_perform_container_action(call)
 
             # Verify API call was made
@@ -1279,7 +1301,9 @@ class TestPortainerServices:
             mock_entity_reg.async_remove.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handle_perform_container_action_non_remove_action_no_device_removal(self, mock_hass, mock_coordinator):
+    async def test_handle_perform_container_action_non_remove_action_no_device_removal(
+        self, mock_hass, mock_coordinator
+    ):
         """Test that non-remove actions don't trigger device removal."""
         device_entry = Mock()
         device_entry.identifiers = {("portainer", "1_web-server")}
@@ -1298,16 +1322,16 @@ class TestPortainerServices:
                 mock_er.async_entries_for_device = Mock(return_value=[])
 
             mock_coordinator.api.query = AsyncMock()
-            mock_coordinator.get_specific_container = Mock(return_value={
-                "Id": "abc123def456",
-                "Name": "web-server",
-                "EndpointId": "1"
-            })
+            mock_coordinator.get_specific_container = Mock(
+                return_value={
+                    "Id": "abc123def456",
+                    "Name": "web-server",
+                    "EndpointId": "1",
+                }
+            )
 
             mock_hass.data = {
-                "portainer": {
-                    "test_entry_id": {"coordinator": mock_coordinator}
-                }
+                "portainer": {"test_entry_id": {"coordinator": mock_coordinator}}
             }
 
             # Test different actions that should NOT trigger device removal
@@ -1315,20 +1339,18 @@ class TestPortainerServices:
 
             for action in non_remove_actions:
                 call = Mock()
-                call.data = {
-                    ATTR_ACTION: action,
-                    ATTR_CONTAINER_DEVICES: ["device_1"]
-                }
+                call.data = {ATTR_ACTION: action, ATTR_CONTAINER_DEVICES: ["device_1"]}
                 call.hass = mock_hass
 
-                from custom_components.portainer.services import _handle_perform_container_action
+                from custom_components.portainer.services import (
+                    _handle_perform_container_action,
+                )
+
                 await _handle_perform_container_action(call)
 
                 # Verify API call was made
                 mock_coordinator.api.query.assert_called_with(
-                    f"endpoints/1/docker/containers/abc123def456/{action}",
-                    "POST",
-                    {}
+                    f"endpoints/1/docker/containers/abc123def456/{action}", "POST", {}
                 )
 
                 # Device should NOT be removed for non-remove actions

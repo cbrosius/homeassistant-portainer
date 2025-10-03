@@ -228,7 +228,9 @@ def get_scenario_mixed_health() -> Dict[str, Any]:
     health_states = ["healthy", "unhealthy", "starting", "unknown"]
     for i, container in enumerate(containers):
         if container["State"] == "running":
-            container["_Custom"] = {"Health_Status": health_states[i % len(health_states)]}
+            container["_Custom"] = {
+                "Health_Status": health_states[i % len(health_states)]
+            }
 
     return {
         "name": "mixed_health",

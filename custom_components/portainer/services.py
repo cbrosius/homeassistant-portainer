@@ -158,7 +158,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                     try:
                         # Remove the device from device registry
                         device_reg.async_remove_device(device_id)
-                        _LOGGER.debug("Removed device '%s' from device registry", device_id)
+                        _LOGGER.debug(
+                            "Removed device '%s' from device registry", device_id
+                        )
 
                         # Remove all entities for this device
                         entities_for_device = er.async_entries_for_device(
@@ -166,7 +168,11 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                         )
                         for entity in entities_for_device:
                             entity_reg.async_remove(entity.entity_id)
-                            _LOGGER.debug("Removed entity '%s' for device '%s'", entity.entity_id, device_id)
+                            _LOGGER.debug(
+                                "Removed entity '%s' for device '%s'",
+                                entity.entity_id,
+                                device_id,
+                            )
 
                         _LOGGER.info(
                             "Successfully removed container device '%s' and all its entities from Home Assistant",
@@ -274,7 +280,9 @@ async def async_register_services(hass: HomeAssistant) -> None:
         _handle_perform_container_action,
         schema=vol.Schema(
             {
-                vol.Required(ATTR_ACTION): vol.In(["start", "stop", "restart", "kill", "remove"]),
+                vol.Required(ATTR_ACTION): vol.In(
+                    ["start", "stop", "restart", "kill", "remove"]
+                ),
                 vol.Required(ATTR_CONTAINER_DEVICES): vol.All([str], vol.Length(min=1)),
                 vol.Optional("force", default=False): bool,
                 vol.Optional("remove_volumes", default=False): bool,

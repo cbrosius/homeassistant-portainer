@@ -53,8 +53,8 @@ The container device provides a central place to monitor its status and details.
      *   Image ID
      *   Start Time and Creation Date
      *   Compose Stack and Service names (if applicable)
-     *   Health Status (enabled by default)
-     *   Restart Policy (enabled by default)
+     *   Health Status (if applicable)
+     *   Restart Policy
 *   **Controls**: You can control the container directly from Home Assistant using the `portainer.perform_container_action` service. This allows you to `start`, `stop`, `restart`, or `kill` one or more containers, which is perfect for automations and scripts.
 
 ![Containers](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/containers.png)
@@ -184,18 +184,10 @@ The setup process includes the following steps:
 
 3. **Container & Stack Selection**: Select specific containers and stacks to track
 
-All features (health check sensors, restart policy sensors, and action buttons) are automatically enabled for the best experience. No additional configuration steps are required.
-
 ## Configuration
-The integration automatically enables all features by default for the best user experience:
-
-* **Health Check Sensors** - Monitor container health status from Docker health checks
-* **Restart Policy Sensors** - Display container restart policies
-* **Action Buttons** - Provide start/stop/restart/kill buttons for containers and stacks
 
 No additional configuration is required - all features are enabled automatically. If you need to modify endpoint, container, or stack selections, use `Configuration -> Integrations -> Portainer -> Configure`.
 
-![Configuration](https://raw.githubusercontent.com/cbrosius/homeassistant-portainer/master/docs/assets/images/ui/options.png)
 
 ## Advanced Features
 
@@ -233,7 +225,6 @@ This ensures you only see repair issues for genuine persistent problems, not tem
 * Verify container/endpoints still exist in Portainer
 
 **Action buttons not working:**
-* Ensure the integration has action buttons enabled (default: enabled)
 * Check that the target container/endpoint is reachable
 * Verify user permissions in Portainer
 

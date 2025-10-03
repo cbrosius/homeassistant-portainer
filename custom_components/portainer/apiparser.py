@@ -179,6 +179,10 @@ def parse_api(
         return data
 
     for entry in source:
+        # Skip malformed entries that aren't dictionaries
+        if not isinstance(entry, dict):
+            continue
+
         if only and not matches_only(entry, only):
             continue
 

@@ -394,7 +394,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     if (
                         not self.selected_containers
-                        or f'{eid}_{container["Name"]}_{self.config_entry_id}' not in self.selected_containers
+                        or f'{eid}_{container["Name"]}_{self.config_entry_id}'
+                        not in self.selected_containers
                     ):
                         del all_containers[cid]
                         continue

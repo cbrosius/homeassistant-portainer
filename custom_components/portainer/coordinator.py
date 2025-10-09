@@ -394,7 +394,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     if (
                         not self.selected_containers
-                        or f'{eid}_{container["Name"]}' not in self.selected_containers
+                        or f'{eid}_{container["Name"]}_{self.config_entry_id}' not in self.selected_containers
                     ):
                         del all_containers[cid]
                         continue
@@ -574,7 +574,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
         for endpoint_id, containers_dict in self.raw_data["containers"].items():
             if containers_dict:
                 for cid, container_data in containers_dict.items():
-                    key = f'{container_data["EndpointId"]}_{container_data["Name"]}'
+                    # Include config_entry_id to ensure uniqueness across multiple Portainer instances
+                    key = f'{container_data["EndpointId"]}_{container_data["Name"]}_{self.config_entry_id}'
                     flat_containers[key] = container_data
 
         self.raw_data["containers"] = flat_containers
@@ -640,8 +641,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self, endpoint_id: str, container_name: str
     ) -> dict | None:
         """Retrieve details for a specific container by its ID."""
-        # Look for container in flat structure using the key format: "endpointId_containerName"
-        container_key = f"{endpoint_id}_{container_name}"
+        # Look for container in flat structure using the key format: "endpointId_containerName_configEntryId"
+        container_key = f"{endpoint_id}_{container_name}_{self.config_entry_id}"
         return self.data["containers"].get(container_key)
 
     def get_container_name(self, endpoint_id: str, container_id: str) -> str | None:
@@ -651,8 +652,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
             if container.get("Id") == container_id:
                 return container.get("Name")
 
-        # Fallback: try to find by endpoint_id and container_id combination
-        container_key = f"{endpoint_id}_{container_id}"
+        # Fallback: try to find by endpoint_id, container_id, and config_entry_id combination
+        container_key = f"{endpoint_id}_{container_id}_{self.config_entry_id}"
         container = self.data["containers"].get(container_key)
         if container:
             return container.get("Name")

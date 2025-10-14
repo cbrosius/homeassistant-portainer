@@ -29,7 +29,9 @@ class TestContainerPerformance:
             "ssl": False,
             "verify_ssl": True,
         }
-        config_entry.options = {"containers": []}  # Select all containers for performance test
+        config_entry.options = {
+            "containers": []
+        }  # Select all containers for performance test
         return config_entry
 
     @pytest.fixture
@@ -39,7 +41,7 @@ class TestContainerPerformance:
             coordinator = PortainerCoordinator(mock_hass, mock_config_entry)
             coordinator.raw_data = {
                 "endpoints": {"1": {"Status": 1, "Name": "test-endpoint"}},
-                "containers": {"1": {}}
+                "containers": {"1": {}},
             }
             return coordinator
 
@@ -50,12 +52,14 @@ class TestContainerPerformance:
         large_container_list = []
 
         for i in range(num_containers):
-            large_container_list.append({
-                "Id": f"container_{i}",
-                "Names": [f"/test-container-{i}"],
-                "State": "running",
-                "Image": f"test-image:{i % 10}"
-            })
+            large_container_list.append(
+                {
+                    "Id": f"container_{i}",
+                    "Names": [f"/test-container-{i}"],
+                    "State": "running",
+                    "Image": f"test-image:{i % 10}",
+                }
+            )
 
         def mock_inspect(*args, **kwargs):
             container_id = args[0].split("/")[-1]  # Extract container ID from URL
@@ -65,7 +69,7 @@ class TestContainerPerformance:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": f"test-image:{container_id.split('_')[1]}"
+                "Image": f"test-image:{container_id.split('_')[1]}",
             }
 
         # Mock API responses
@@ -94,7 +98,9 @@ class TestContainerPerformance:
             flat_containers = coordinator.raw_data["containers"]
             assert len(flat_containers) == num_containers
 
-            print(f"Processed {num_containers} containers in {processing_time:.2f} seconds")
+            print(
+                f"Processed {num_containers} containers in {processing_time:.2f} seconds"
+            )
 
     def test_memory_usage_with_large_datasets(self, coordinator):
         """Test memory usage doesn't grow excessively with large datasets."""
@@ -110,12 +116,14 @@ class TestContainerPerformance:
         large_container_list = []
 
         for i in range(num_containers):
-            large_container_list.append({
-                "Id": f"container_{i}",
-                "Names": [f"/test-container-{i}"],
-                "State": "running",
-                "Image": "test-image:latest"
-            })
+            large_container_list.append(
+                {
+                    "Id": f"container_{i}",
+                    "Names": [f"/test-container-{i}"],
+                    "State": "running",
+                    "Image": "test-image:latest",
+                }
+            )
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -124,7 +132,7 @@ class TestContainerPerformance:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "test-image:latest"
+                "Image": "test-image:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -141,7 +149,9 @@ class TestContainerPerformance:
             # Memory increase should be reasonable (adjust threshold as needed)
             assert memory_increase < 100  # Should use less than 100MB additional memory
 
-            print(f"Memory increase: {memory_increase:.2f} MB for {num_containers} containers")
+            print(
+                f"Memory increase: {memory_increase:.2f} MB for {num_containers} containers"
+            )
 
     def test_container_processing_timeout_handling(self, coordinator):
         """Test timeout handling during container processing."""
@@ -150,11 +160,13 @@ class TestContainerPerformance:
         num_containers = 100
 
         for i in range(num_containers):
-            slow_containers.append({
-                "Id": f"container_{i}",
-                "Names": [f"/slow-container-{i}"],
-                "State": "running"
-            })
+            slow_containers.append(
+                {
+                    "Id": f"container_{i}",
+                    "Names": [f"/slow-container-{i}"],
+                    "State": "running",
+                }
+            )
 
         def slow_inspect(*args, **kwargs):
             time.sleep(0.01)  # Simulate slow API response
@@ -164,7 +176,7 @@ class TestContainerPerformance:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "test-image:latest"
+                "Image": "test-image:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:

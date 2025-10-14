@@ -229,10 +229,7 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             f"{self.options[CONF_NAME]}_{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
             for c in containers
         }
-        _LOGGER.debug(
-            "Config flow - Created container options: %s",
-            container_options
-        )
+        _LOGGER.debug("Config flow - Created container options: %s", container_options)
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
         schema_dict = {}

@@ -32,7 +32,7 @@ class TestContainerFormatCompatibility:
         config_entry.options = {
             "containers": [
                 "Portainer_2_ots-app-1",  # Config name format
-                "01K7HFNR3527W6HYGM6SFGDTG1_2_ots-redis-1"  # Config entry ID format
+                "01K7HFNR3527W6HYGM6SFGDTG1_2_ots-redis-1",  # Config entry ID format
             ]
         }
         return config_entry
@@ -48,25 +48,23 @@ class TestContainerFormatCompatibility:
         """Test that coordinator handles both identifier formats."""
         # Setup test data
         coordinator.raw_data = {
-            "endpoints": {
-                "2": {"Status": 1, "Name": "test-endpoint"}
-            },
+            "endpoints": {"2": {"Status": 1, "Name": "test-endpoint"}},
             "containers": {
                 "2": {
                     "container1": {
                         "Id": "abc123",
                         "Names": ["/ots-app-1"],
                         "State": "running",
-                        "EndpointId": "2"
+                        "EndpointId": "2",
                     },
                     "container2": {
                         "Id": "def456",
                         "Names": ["/ots-redis-1"],
                         "State": "running",
-                        "EndpointId": "2"
-                    }
+                        "EndpointId": "2",
+                    },
                 }
-            }
+            },
         }
 
         # Process containers
@@ -84,24 +82,26 @@ class TestContainerFormatCompatibility:
                 "01K7HFNR3527W6HYGM6SFGDTG1_2_ots-app-1": {
                     "Name": "ots-app-1",
                     "EndpointId": "2",
-                    "State": "running"
+                    "State": "running",
                 },
                 "01K7HFNR3527W6HYGM6SFGDTG1_2_ots-redis-1": {
                     "Name": "ots-redis-1",
                     "EndpointId": "2",
-                    "State": "running"
-                }
+                    "State": "running",
+                },
             }
         }
 
         # Create sensor descriptions
-        descriptions = [Mock(
-            data_path="containers",
-            data_attribute="State",
-            data_name="Name",
-            data_reference=True,
-            func="ContainerSensor"
-        )]
+        descriptions = [
+            Mock(
+                data_path="containers",
+                data_attribute="State",
+                data_name="Name",
+                data_reference=True,
+                func="ContainerSensor",
+            )
+        ]
         dispatcher = {"ContainerSensor": Mock()}
 
         # Create entities

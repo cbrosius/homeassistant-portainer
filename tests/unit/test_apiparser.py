@@ -271,7 +271,7 @@ class TestAPIParsers:
     def test_process_value_definition_str_type(self):
         """Test _process_value_definition with str type."""
         target_dict = {}
-        source_entry = {"key": "value"}
+        source_entry = {"test_key": "value"}
         val_def = {"name": "test_key", "type": "str", "default": "default_val"}
 
         _process_value_definition(target_dict, source_entry, val_def)
@@ -296,7 +296,7 @@ class TestAPIParsers:
     def test_process_value_definition_bool_type(self):
         """Test _process_value_definition with bool type."""
         target_dict = {}
-        source_entry = {"key": "on"}
+        source_entry = {"test_key": "on"}
         val_def = {"name": "test_key", "type": "bool"}
 
         _process_value_definition(target_dict, source_entry, val_def)
@@ -306,7 +306,7 @@ class TestAPIParsers:
     def test_process_value_definition_bool_type_reverse(self):
         """Test _process_value_definition with bool type and reverse."""
         target_dict = {}
-        source_entry = {"key": True}
+        source_entry = {"test_key": True}
         val_def = {"name": "test_key", "type": "bool", "reverse": True}
 
         _process_value_definition(target_dict, source_entry, val_def)
@@ -330,7 +330,7 @@ class TestAPIParsers:
     def test_process_value_definition_utc_from_timestamp(self):
         """Test _process_value_definition with timestamp conversion."""
         target_dict = {}
-        source_entry = {"timestamp": 1609459200}
+        source_entry = {"converted_time": 1609459200}
         val_def = {"name": "converted_time", "convert": "utc_from_timestamp"}
 
         _process_value_definition(target_dict, source_entry, val_def)
@@ -341,7 +341,7 @@ class TestAPIParsers:
     def test_process_value_definition_utc_from_iso_string(self):
         """Test _process_value_definition with ISO string conversion."""
         target_dict = {}
-        source_entry = {"iso_time": "2021-01-01T00:00:00Z"}
+        source_entry = {"converted_time": "2021-01-01T00:00:00Z"}
         val_def = {"name": "converted_time", "convert": "utc_from_iso_string"}
 
         _process_value_definition(target_dict, source_entry, val_def)

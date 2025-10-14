@@ -38,18 +38,16 @@ class TestContainerNameExtraction:
             coordinator = PortainerCoordinator(mock_hass, mock_config_entry)
             coordinator.raw_data = {
                 "endpoints": {"1": {"Status": 1, "Name": "test-endpoint"}},
-                "containers": {"1": {}}
+                "containers": {"1": {}},
             }
             return coordinator
 
     def test_container_name_extraction_standard_format(self, coordinator):
         """Test standard Docker container name extraction."""
         # Setup test container with standard format
-        test_containers = [{
-            "Id": "test123",
-            "Names": ["/test-container"],
-            "State": "running"
-        }]
+        test_containers = [
+            {"Id": "test123", "Names": ["/test-container"], "State": "running"}
+        ]
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -58,7 +56,7 @@ class TestContainerNameExtraction:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "nginx:latest"
+                "Image": "nginx:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -74,11 +72,13 @@ class TestContainerNameExtraction:
 
     def test_container_name_extraction_multiple_names(self, coordinator):
         """Test container with multiple names (Docker allows this)."""
-        test_containers = [{
-            "Id": "test123",
-            "Names": ["/primary-name", "/alias1", "/alias2"],
-            "State": "running"
-        }]
+        test_containers = [
+            {
+                "Id": "test123",
+                "Names": ["/primary-name", "/alias1", "/alias2"],
+                "State": "running",
+            }
+        ]
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -87,7 +87,7 @@ class TestContainerNameExtraction:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "nginx:latest"
+                "Image": "nginx:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -101,11 +101,7 @@ class TestContainerNameExtraction:
 
     def test_container_name_extraction_empty_names(self, coordinator):
         """Test container with empty or missing Names array."""
-        test_containers = [{
-            "Id": "test123",
-            "Names": [],
-            "State": "running"
-        }]
+        test_containers = [{"Id": "test123", "Names": [], "State": "running"}]
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -114,7 +110,7 @@ class TestContainerNameExtraction:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "nginx:latest"
+                "Image": "nginx:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -128,11 +124,13 @@ class TestContainerNameExtraction:
 
     def test_container_name_extraction_missing_names_field(self, coordinator):
         """Test container missing Names field entirely."""
-        test_containers = [{
-            "Id": "test123",
-            "State": "running"
-            # Missing Names field
-        }]
+        test_containers = [
+            {
+                "Id": "test123",
+                "State": "running",
+                # Missing Names field
+            }
+        ]
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -141,7 +139,7 @@ class TestContainerNameExtraction:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "nginx:latest"
+                "Image": "nginx:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -155,15 +153,18 @@ class TestContainerNameExtraction:
 
     def test_container_name_extraction_malformed_names(self, coordinator):
         """Test container with malformed Names data."""
-        test_containers = [{
-            "Id": "test123",
-            "Names": ["/test-container"],  # Valid
-            "State": "running"
-        }, {
-            "Id": "test456",
-            "Names": "invalid-string",  # Invalid - should be array
-            "State": "running"
-        }]
+        test_containers = [
+            {
+                "Id": "test123",
+                "Names": ["/test-container"],  # Valid
+                "State": "running",
+            },
+            {
+                "Id": "test456",
+                "Names": "invalid-string",  # Invalid - should be array
+                "State": "running",
+            },
+        ]
 
         def mock_inspect_side_effect(*args, **kwargs):
             if "test123" in args[0]:
@@ -173,7 +174,7 @@ class TestContainerNameExtraction:
                     "HostConfig": {"NetworkMode": "bridge"},
                     "NetworkSettings": {"Networks": {}},
                     "Mounts": [],
-                    "Image": "nginx:latest"
+                    "Image": "nginx:latest",
                 }
             elif "test456" in args[0]:
                 return {
@@ -182,7 +183,7 @@ class TestContainerNameExtraction:
                     "HostConfig": {"NetworkMode": "bridge"},
                     "NetworkSettings": {"Networks": {}},
                     "Mounts": [],
-                    "Image": "nginx:latest"
+                    "Image": "nginx:latest",
                 }
 
         with patch.object(coordinator.api, "query") as mock_query:
@@ -191,7 +192,9 @@ class TestContainerNameExtraction:
             coordinator.get_containers()
 
             # First container should work normally
-            assert "test_entry_id_1_test-container" in coordinator.raw_data["containers"]
+            assert (
+                "test_entry_id_1_test-container" in coordinator.raw_data["containers"]
+            )
 
             # Second container should use fallback due to malformed Names
             container_key = "test_entry_id_1_container_test456"
@@ -199,11 +202,9 @@ class TestContainerNameExtraction:
 
     def test_container_name_extraction_unicode_names(self, coordinator):
         """Test container name extraction with Unicode characters."""
-        test_containers = [{
-            "Id": "test123",
-            "Names": ["/tëst-cöntainër"],
-            "State": "running"
-        }]
+        test_containers = [
+            {"Id": "test123", "Names": ["/tëst-cöntainër"], "State": "running"}
+        ]
 
         def mock_inspect(*args, **kwargs):
             return {
@@ -212,7 +213,7 @@ class TestContainerNameExtraction:
                 "HostConfig": {"NetworkMode": "bridge"},
                 "NetworkSettings": {"Networks": {}},
                 "Mounts": [],
-                "Image": "nginx:latest"
+                "Image": "nginx:latest",
             }
 
         with patch.object(coordinator.api, "query") as mock_query:

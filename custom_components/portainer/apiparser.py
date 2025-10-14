@@ -116,8 +116,8 @@ def _process_value_definition(
 
     if _type == "str":
         _default = val_def.get("default", "")
-        if "default_val" in val_def and val_def["default_val"] in val_def:
-            _default = val_def[val_def["default_val"]]
+        if "default_val" in val_def:
+            _default = val_def["default_val"]
         # If no source path is provided, use the name as the key directly
         if "source" not in val_def:
             _source_path = _name
@@ -282,14 +282,9 @@ def fill_vals_proc(data, uid, vals_proc) -> dict:
         for val in val_sub:
             if "name" in val:
                 _name = val["name"]
-                continue
 
             if "action" in val:
                 _action = val["action"]
-                continue
-
-            if not _name and not _action:
-                break
 
             if _action == "combine":
                 if "key" in val:

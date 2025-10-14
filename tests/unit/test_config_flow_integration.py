@@ -3,7 +3,10 @@
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
 
-from custom_components.portainer.config_flow import PortainerConfigFlow, PortainerOptionsFlow
+from custom_components.portainer.config_flow import (
+    PortainerConfigFlow,
+    PortainerOptionsFlow,
+)
 from custom_components.portainer.const import DOMAIN
 
 
@@ -25,21 +28,31 @@ class TestConfigFlowIntegration:
         api.connected.return_value = True
         api.get_endpoints.return_value = [
             {"id": "1", "name": "local", "status": 1},
-            {"id": "2", "name": "remote", "status": 1}
+            {"id": "2", "name": "remote", "status": 1},
         ]
         api.get_containers.side_effect = [
             [  # Containers for endpoint 1
-                {"id": "1", "name": "web-server", "status": "running", "endpoint_id": "1"},
-                {"id": "2", "name": "database", "status": "running", "endpoint_id": "1"}
+                {
+                    "id": "1",
+                    "name": "web-server",
+                    "status": "running",
+                    "endpoint_id": "1",
+                },
+                {
+                    "id": "2",
+                    "name": "database",
+                    "status": "running",
+                    "endpoint_id": "1",
+                },
             ],
             [  # Containers for endpoint 2
                 {"id": "3", "name": "cache", "status": "running", "endpoint_id": "2"},
-                {"id": "4", "name": "monitor", "status": "running", "endpoint_id": "2"}
-            ]
+                {"id": "4", "name": "monitor", "status": "running", "endpoint_id": "2"},
+            ],
         ]
         api.get_stacks.side_effect = [
             [{"id": "1", "name": "web-stack", "endpoint_id": "1"}],
-            [{"id": "2", "name": "monitor-stack", "endpoint_id": "2"}]
+            [{"id": "2", "name": "monitor-stack", "endpoint_id": "2"}],
         ]
         return api
 
@@ -49,21 +62,25 @@ class TestConfigFlowIntegration:
         config_flow = PortainerConfigFlow()
         config_flow.hass = mock_hass
         config_flow.api = Mock()
-        config_flow.options = {
-            "name": "Test Portainer",
-            "endpoints": ["1", "2"]
-        }
+        config_flow.options = {"name": "Test Portainer", "endpoints": ["1", "2"]}
 
         # Mock the API responses
         config_flow.api.get_endpoints.return_value = [
             {"id": "1", "name": "local", "status": 1}
         ]
         config_flow.api.get_containers.return_value = [
-            {"id": "1", "name": "test-container", "status": "running", "endpoint_id": "1"}
+            {
+                "id": "1",
+                "name": "test-container",
+                "status": "running",
+                "endpoint_id": "1",
+            }
         ]
 
         # Test container options creation (this would be called internally)
-        containers = [{"endpoint_id": "1", "name": "test-container", "status": "running"}]
+        containers = [
+            {"endpoint_id": "1", "name": "test-container", "status": "running"}
+        ]
 
         # The format should be: config_name_endpoint_id_container_name
         expected_format = "Test Portainer_1_test-container"
@@ -86,7 +103,7 @@ class TestConfigFlowIntegration:
             "api_key": "test_api_key",
             "ssl": False,
             "verify_ssl": True,
-            "endpoints": ["1"]
+            "endpoints": ["1"],
         }
         config_entry.options = {"endpoints": ["1"]}
 
@@ -99,12 +116,21 @@ class TestConfigFlowIntegration:
         api = Mock()
         api.get_endpoints.return_value = [{"id": "1", "name": "local", "status": 1}]
         api.get_containers.return_value = [
-            {"id": "1", "name": "test-container", "status": "running", "endpoint_id": "1"}
+            {
+                "id": "1",
+                "name": "test-container",
+                "status": "running",
+                "endpoint_id": "1",
+            }
         ]
 
-        with patch("custom_components.portainer.config_flow.PortainerAPI", return_value=api):
+        with patch(
+            "custom_components.portainer.config_flow.PortainerAPI", return_value=api
+        ):
             # Test container options creation format
-            containers = [{"endpoint_id": "1", "name": "test-container", "status": "running"}]
+            containers = [
+                {"endpoint_id": "1", "name": "test-container", "status": "running"}
+            ]
 
             # Should use config entry ID format
             expected_format = "01K7HFNR3527W6HYGM6SFGDTG1_1_test-container"

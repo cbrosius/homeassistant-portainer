@@ -732,7 +732,9 @@ class TestPortainerServices:
             mock_dr.async_get.return_value = mock_device_reg
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(return_value=[])
+                mock_entity_reg = Mock()
+                mock_entity_reg.async_entries_for_device = Mock(return_value=[])
+                mock_er.async_get.return_value = mock_entity_reg
 
             mock_coordinator.api.query = AsyncMock()
 
@@ -1080,9 +1082,11 @@ class TestPortainerServices:
             mock_entity_reg.async_remove = Mock()
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(
+                mock_entity_reg = Mock()
+                mock_entity_reg.async_entries_for_device = Mock(
                     return_value=[mock_entity_entry]
                 )
+                mock_er.async_get.return_value = mock_entity_reg
 
             # Mock API query
             mock_coordinator.api.query = AsyncMock()
@@ -1271,9 +1275,11 @@ class TestPortainerServices:
             mock_entity_reg.async_remove = Mock()
 
             with patch("custom_components.portainer.services.er") as mock_er:
-                mock_er.async_entries_for_device = Mock(
+                mock_entity_reg = Mock()
+                mock_entity_reg.async_entries_for_device = Mock(
                     side_effect=[[mock_entity1], [mock_entity2]]
                 )
+                mock_er.async_get.return_value = mock_entity_reg
 
             mock_coordinator.api.query = AsyncMock()
             mock_coordinator.get_specific_container = Mock(

@@ -325,7 +325,7 @@ class StackActionButton(PortainerEntity, ButtonEntity):
                 method,
                 {},
             )
-            _LOGGER.info("Successfully performed '%s' on stack '%s'", action, stack_id)
+            _LOGGER.debug("Successfully performed '%s' on stack '%s'", action, stack_id)
         except Exception as e:
             _LOGGER.error(
                 "Failed to perform '%s' on stack '%s': %s", action, stack_id, e

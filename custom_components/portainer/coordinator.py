@@ -112,7 +112,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 "containers", config_entry.data.get("containers", [])
             )
         )
-        _LOGGER.info(
+        _LOGGER.debug(
             "Selected containers for %s: %s", self.name, self.selected_containers
         )
         self.selected_stacks = set(
@@ -326,11 +326,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
         for eid in self.raw_data["endpoints"]:
             if self.raw_data["endpoints"][eid]["Status"] == 1:
                 self.raw_data["containers"][eid] = {}
-                _LOGGER.info("Fetching containers for endpoint %s", eid)
+                _LOGGER.debug("Fetching containers for endpoint %s", eid)
                 containers_response = self.api.query(
                     f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
                 )
-                _LOGGER.info(
+                _LOGGER.debug(
                     "API returned %d containers for endpoint %s",
                     len(containers_response) if containers_response else 0,
                     eid,
@@ -374,7 +374,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     ],
                 )
                 # Only keep selected containers and then process them
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Processing %d containers for endpoint %s", len(all_containers), eid
                 )
                 for cid in list(all_containers.keys()):
@@ -385,7 +385,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         _LOGGER.warning("Container %s is None, skipping", cid)
                         continue
 
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Processing container: %s (CID: %s)",
                         container.get("Name", "unknown"),
                         cid,
@@ -423,7 +423,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     # Fix: Use the same format as sensor device_info
                     container_key = f'{self.config_entry_id}_{eid}_{container["Name"]}'
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Checking container %s on endpoint %s: key=%s, selected=%s, in_selected=%s",
                         container["Name"],
                         eid,
@@ -444,7 +444,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         container_key not in self.selected_containers
                         and config_name_key not in self.selected_containers
                     ):
-                        _LOGGER.info(
+                        _LOGGER.debug(
                             "Filtering out container %s (keys: %s, %s) - not in selected containers %s",
                             container["Name"],
                             container_key,
@@ -546,7 +546,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
                     if container is not None:
                         self.raw_data["containers"][eid][cid] = container
-                        _LOGGER.info(
+                        _LOGGER.debug(
                             "Successfully processed container: %s on endpoint %s (Compose_Stack: %s)",
                             container.get("Name", cid),
                             eid,
@@ -664,10 +664,10 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         # Create flat structure with unique keys for all endpoints
         flat_containers = {}
-        _LOGGER.info("Creating flat structure from containers...")
+        _LOGGER.debug("Creating flat structure from containers...")
         for endpoint_id, containers_dict in self.raw_data["containers"].items():
             if containers_dict:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Processing %d containers from endpoint %s",
                     len(containers_dict),
                     endpoint_id,
@@ -676,23 +676,23 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     # Fix: Use the same format as sensor device_info
                     key = f'{self.config_entry_id}_{container_data["EndpointId"]}_{container_data["Name"]}'
                     flat_containers[key] = container_data
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Added to flat structure: %s -> %s",
                         key,
                         container_data.get("Name", "unknown"),
                     )
             else:
-                _LOGGER.info("No containers found for endpoint %s", endpoint_id)
+                _LOGGER.debug("No containers found for endpoint %s", endpoint_id)
 
         self.raw_data["containers"] = flat_containers
-        _LOGGER.info("Flat structure created with %d containers", len(flat_containers))
+        _LOGGER.debug("Flat structure created with %d containers", len(flat_containers))
 
         # Log final container results
-        _LOGGER.info(
+        _LOGGER.debug(
             "Final container results for config entry %s:", self.config_entry_id
         )
         for key, container in flat_containers.items():
-            _LOGGER.info(
+            _LOGGER.debug(
                 "  Container: %s (Stack: %s, State: %s)",
                 container.get("Name", "unknown"),
                 container.get("Compose_Stack", "none"),

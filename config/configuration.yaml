@@ -4,7 +4,10 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.homeassistant-portainer: debug
+    custom_components.portainer: debug
+    custom_components.portainer.entity: debug
+    custom_components.portainer.coordinator: debug
+    custom_components.portainer.sensor: debug
 
 # Run with debugpy and wait for debugger to connect
 # debugpy:

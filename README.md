@@ -230,12 +230,33 @@ This ensures you only see repair issues for genuine persistent problems, not tem
 
 ### Debug Logging
 To enable debug logging for troubleshooting, add the following to your `configuration.yaml`:
+
 ```yaml
 logger:
   default: info
   logs:
     custom_components.portainer: debug
+    custom_components.portainer.entity: debug
+    custom_components.portainer.coordinator: debug
+    custom_components.portainer.sensor: debug
 ```
+
+#### Debug Messages for Troubleshooting
+When debug logging is enabled, you'll see detailed messages that can help diagnose issues:
+
+**Entity Creation:**
+- `Generated container unique_id: [details]` - Shows how unique IDs are created for entities
+- `Creating container device info: [details]` - Shows device identifier generation
+
+**Container Processing:**
+- `Container details - Name: [name], EndpointId: [id], Id: [container_id]` - Container information
+- `Added to flat structure: [key] -> [name]` - Data structure organization
+- `Checking container [name] on endpoint [id]` - Container filtering logic
+
+**Common Issues and Debug Patterns:**
+- **Duplicate devices**: Look for identical device identifiers across different config entries
+- **Missing entities**: Check container filtering and selection logic messages
+- **Device conflicts**: Monitor device info creation for identifier collisions
 
 ### Getting Help
 * Check the [GitHub Issues](https://github.com/cbrosius/homeassistant-portainer/issues) page for known issues

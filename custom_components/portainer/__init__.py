@@ -1,5 +1,6 @@
 """The Portainer integration."""
 
+from .services import async_register_services, async_unregister_services
 from logging import getLogger
 
 from homeassistant.config_entries import ConfigEntry
@@ -9,6 +10,7 @@ from .const import DOMAIN, PLATFORMS
 from .coordinator import PortainerCoordinator
 
 _LOGGER = getLogger(__name__)
+_LOGGER.debug("Portainer integration loaded and logger initialized")
 # Store a set of registered domains to ensure services are registered only once
 _REGISTERED_DOMAINS = set()
 
@@ -24,7 +26,6 @@ async def _async_update_listener(hass: HomeAssistant, config_entry: ConfigEntry)
 # ---------------------------
 #   async_setup_entry
 # ---------------------------
-from .services import async_register_services, async_unregister_services
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

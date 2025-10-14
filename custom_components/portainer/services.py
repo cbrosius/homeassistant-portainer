@@ -79,14 +79,22 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
                     container_name,
                     coordinator.name,
                 )
-            except Exception as e:
+            except (KeyError, ValueError) as e:
                 _LOGGER.error(
                     "Failed to recreate container '%s' on instance '%s': %s",
                     identifier,
                     coordinator.name,
                     e,
                 )
-
+            # If other unexpected exceptions may occur, you can add a generic handler with a comment:
+            except Exception as e:
+                # Catch-all for unexpected errors; consider narrowing this further if possible.
+                _LOGGER.error(
+                    "Unexpected error while recreating container '%s' on instance '%s': %s",
+                    identifier,
+                    coordinator.name,
+                    e,
+                )
         await coordinator.async_request_refresh()
 
 

@@ -50,10 +50,14 @@ async def async_create_sensors(
                     endpoint_id = container_data.get("EndpointId")
 
                     if container_name and endpoint_id:
-                        device_identifier = f"{endpoint_id}_{container_name}_{coordinator.config_entry_id}"
+                        # Check both config entry ID format and config name format for backward compatibility
+                        device_identifier = f"{coordinator.config_entry_id}_{endpoint_id}_{container_name}"
+                        config_name_identifier = f"{coordinator.name}_{endpoint_id}_{container_name}"
+
                         if (
                             coordinator.selected_containers
                             and device_identifier not in coordinator.selected_containers
+                            and config_name_identifier not in coordinator.selected_containers
                         ):
                             continue
                     else:

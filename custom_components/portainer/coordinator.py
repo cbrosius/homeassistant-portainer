@@ -112,6 +112,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 "containers", config_entry.data.get("containers", [])
             )
         )
+        _LOGGER.info("Selected containers for %s: %s", self.name, self.selected_containers)
         self.selected_stacks = set(
             str(s)
             for s in config_entry.options.get(
@@ -179,7 +180,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             device_registry, self.config_entry.entry_id
         )
 
-        # Get current identifiers from Portainer API data
+        # Fix: Use the same format as sensor device_info
         current_container_identifiers = {
             f'{self.config_entry.entry_id}_{v["EndpointId"]}_{v["Name"]}'
             for v in self.raw_data.get("containers", {}).values()
@@ -323,11 +324,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
         for eid in self.raw_data["endpoints"]:
             if self.raw_data["endpoints"][eid]["Status"] == 1:
                 self.raw_data["containers"][eid] = {}
+                _LOGGER.info("Fetching containers for endpoint %s", eid)
+                containers_response = self.api.query(
+                    f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
+                )
+                _LOGGER.info("API returned %d containers for endpoint %s", len(containers_response) if containers_response else 0, eid)
+
                 all_containers = parse_api(
                     data=self.raw_data["containers"][eid],
-                    source=self.api.query(
-                        f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
-                    ),
+                    source=containers_response,
                     key="Id",
                     vals=[
                         {"name": "Id", "default": "unknown"},
@@ -363,14 +368,19 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     ],
                 )
                 # Only keep selected containers and then process them
+                _LOGGER.info("Processing %d containers for endpoint %s", len(all_containers), eid)
                 for cid in list(all_containers.keys()):
                     container = all_containers[cid]
 
                     # Skip if container is None
                     if container is None:
+                        _LOGGER.warning("Container %s is None, skipping", cid)
                         continue
 
+                    _LOGGER.info("Processing container: %s (CID: %s)", container.get("Name", "unknown"), cid)
+
                     # Safely extract container name from Names array
+                    _LOGGER.debug("Container %s Names field: %s", cid, container.get("Names"))
                     try:
                         if (
                             isinstance(container.get("Names"), list)
@@ -378,12 +388,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             and container["Names"][0]
                             and len(container["Names"][0]) > 1
                         ):
-                            container["Name"] = container["Names"][0][1:]
+                            container_name = container["Names"][0][1:]
+                            _LOGGER.debug("Extracted container name: %s", container_name)
+                            container["Name"] = container_name
                         else:
                             # Fallback: use container ID or generate a name
                             container["Name"] = container.get(
                                 "Name", f"container_{cid}"
                             )
+                            _LOGGER.debug("Using fallback name: %s", container["Name"])
                     except (KeyError, IndexError, TypeError) as e:
                         _LOGGER.warning(
                             "Failed to extract container name for %s, using ID as fallback: %s",
@@ -392,11 +405,36 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         )
                         container["Name"] = container.get("Name", f"container_{cid}")
 
+                    # Fix: Use the same format as sensor device_info
+                    container_key = f'{self.config_entry_id}_{eid}_{container["Name"]}'
+                    _LOGGER.info(
+                        "Checking container %s on endpoint %s: key=%s, selected=%s, in_selected=%s",
+                        container["Name"],
+                        eid,
+                        container_key,
+                        self.selected_containers,
+                        container_key in self.selected_containers
+                    )
+
+                    # Also check for the config name format (for backward compatibility)
+                    config_name_key = f'{self.name}_{eid}_{container["Name"]}'
+                    _LOGGER.debug(
+                        "Also checking config name format: %s, in_selected=%s",
+                        config_name_key,
+                        config_name_key in self.selected_containers
+                    )
+
                     if (
                         not self.selected_containers
-                        or f'{eid}_{container["Name"]}_{self.config_entry_id}'
-                        not in self.selected_containers
+                        or (container_key not in self.selected_containers and config_name_key not in self.selected_containers)
                     ):
+                        _LOGGER.info(
+                            "Filtering out container %s (keys: %s, %s) - not in selected containers %s",
+                            container["Name"],
+                            container_key,
+                            config_name_key,
+                            self.selected_containers
+                        )
                         del all_containers[cid]
                         continue
 
@@ -446,6 +484,14 @@ class PortainerCoordinator(DataUpdateCoordinator):
                                 container.get("Name", cid),
                                 eid,
                             )
+                            _LOGGER.warning(
+                                "Container details - Name: %s, CID: %s, EID: %s, Selected: %s or %s",
+                                container.get("Name", "unknown"),
+                                cid,
+                                eid,
+                                container_key in self.selected_containers if self.selected_containers else "no selection",
+                                config_name_key in self.selected_containers if self.selected_containers else "no selection"
+                            )
                             del all_containers[cid]
                             continue
                     except Exception as e:
@@ -455,11 +501,25 @@ class PortainerCoordinator(DataUpdateCoordinator):
                             eid,
                             e,
                         )
+                        _LOGGER.warning(
+                            "Container details - Name: %s, CID: %s, EID: %s, Selected: %s or %s",
+                            container.get("Name", "unknown"),
+                            cid,
+                            eid,
+                            container_key in self.selected_containers if self.selected_containers else "no selection",
+                            config_name_key in self.selected_containers if self.selected_containers else "no selection"
+                        )
                         del all_containers[cid]
                         continue
 
                     if container is not None:
                         self.raw_data["containers"][eid][cid] = container
+                        _LOGGER.info(
+                            "Successfully processed container: %s on endpoint %s (Compose_Stack: %s)",
+                            container.get("Name", cid),
+                            eid,
+                            container.get("Compose_Stack", "none")
+                        )
 
                     # Extract Network Mode
                     if container is not None:
@@ -572,14 +632,30 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         # Create flat structure with unique keys for all endpoints
         flat_containers = {}
+        _LOGGER.info("Creating flat structure from containers...")
         for endpoint_id, containers_dict in self.raw_data["containers"].items():
             if containers_dict:
+                _LOGGER.info("Processing %d containers from endpoint %s", len(containers_dict), endpoint_id)
                 for cid, container_data in containers_dict.items():
-                    # Include config_entry_id to ensure uniqueness across multiple Portainer instances
-                    key = f'{container_data["EndpointId"]}_{container_data["Name"]}_{self.config_entry_id}'
+                    # Fix: Use the same format as sensor device_info
+                    key = f'{self.config_entry_id}_{container_data["EndpointId"]}_{container_data["Name"]}'
                     flat_containers[key] = container_data
+                    _LOGGER.info("Added to flat structure: %s -> %s", key, container_data.get("Name", "unknown"))
+            else:
+                _LOGGER.info("No containers found for endpoint %s", endpoint_id)
 
         self.raw_data["containers"] = flat_containers
+        _LOGGER.info("Flat structure created with %d containers", len(flat_containers))
+
+        # Log final container results
+        _LOGGER.info("Final container results for config entry %s:", self.config_entry_id)
+        for key, container in flat_containers.items():
+            _LOGGER.info(
+                "  Container: %s (Stack: %s, State: %s)",
+                container.get("Name", "unknown"),
+                container.get("Compose_Stack", "none"),
+                container.get("State", "unknown")
+            )
 
     # ---------------------------
     #   get_stacks
@@ -642,8 +718,8 @@ class PortainerCoordinator(DataUpdateCoordinator):
         self, endpoint_id: str, container_name: str
     ) -> dict | None:
         """Retrieve details for a specific container by its ID."""
-        # Look for container in flat structure using the key format: "endpointId_containerName_configEntryId"
-        container_key = f"{endpoint_id}_{container_name}_{self.config_entry_id}"
+        # Fix: Use the same format as sensor device_info
+        container_key = f"{self.config_entry_id}_{endpoint_id}_{container_name}"
         return self.data["containers"].get(container_key)
 
     def get_container_name(self, endpoint_id: str, container_id: str) -> str | None:
@@ -653,8 +729,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
             if container.get("Id") == container_id:
                 return container.get("Name")
 
-        # Fallback: try to find by endpoint_id, container_id, and config_entry_id combination
-        container_key = f"{endpoint_id}_{container_id}_{self.config_entry_id}"
+        # Fix: Use the same format as sensor device_info
+        # First check if container_id is actually a container name
+        container_key = f"{self.config_entry_id}_{endpoint_id}_{container_id}"
         container = self.data["containers"].get(container_key)
         if container:
             return container.get("Name")

@@ -224,10 +224,15 @@ class PortainerConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="item_fetch_failed")
 
         # Show status in container name
+        # Use the config name as a temporary identifier - coordinator will handle the mapping
         container_options = {
-            f"{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
+            f"{self.options[CONF_NAME]}_{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
             for c in containers
         }
+        _LOGGER.debug(
+            "Config flow - Created container options: %s",
+            container_options
+        )
         stack_options = {str(s["id"]): s["name"] for s in stacks}
 
         schema_dict = {}
@@ -441,8 +446,9 @@ class PortainerOptionsFlow(OptionsFlow):
                         api.get_stacks, endpoint["id"]
                     )
             # Show status in container name
+            # Fix: Use the same format as sensor device_info
             container_options = {
-                f"{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
+                f"{self.config_entry.entry_id}_{c['endpoint_id']}_{c['name']}": f"{c['name']} [{c['status']}]"
                 for c in containers
             }
             stack_options = {str(s["id"]): s["name"] for s in stacks}

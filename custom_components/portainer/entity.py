@@ -114,7 +114,16 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
             config_entry_id = self.get_config_entry_id()
             if portainer_id:
                 if self.description.data_path == "containers":
-                    self._attr_unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{portainer_id}_{config_entry_id}'
+                    unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{portainer_id}_{config_entry_id}'
+                    _LOGGER.debug(
+                        "Generated container unique_id: %s (endpoint=%s, name=%s, container_id=%s, config_entry=%s)",
+                        unique_id,
+                        self._data.get("EndpointId"),
+                        self._data.get("Name"),
+                        portainer_id,
+                        config_entry_id,
+                    )
+                    self._attr_unique_id = unique_id
                 else:
                     self._attr_unique_id = f"{DOMAIN}-{self.description.key}-{portainer_id}_{config_entry_id}"
             else:
@@ -195,7 +204,14 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
 
         # make connection unique accross configurations
         if self.coordinator:
+            original_dev_connection_value = dev_connection_value
             dev_connection_value += f"_{self.get_config_entry_id()}"
+            _LOGGER.debug(
+                "Device connection value: %s -> %s (config_entry_id=%s)",
+                original_dev_connection_value,
+                dev_connection_value,
+                self.get_config_entry_id(),
+            )
 
         if self.description.ha_group == "System":
             return DeviceInfo(

@@ -440,6 +440,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
                         config_name_key in self.selected_containers,
                     )
 
+                    # Log container details for debugging duplicate issues
+                    _LOGGER.debug(
+                        "Container details - Name: %s, EndpointId: %s, Id: %s, ConfigEntryId: %s",
+                        container.get("Name", "unknown"),
+                        eid,
+                        container.get("Id", "unknown"),
+                        self.config_entry_id,
+                    )
+
                     if not self.selected_containers or (
                         container_key not in self.selected_containers
                         and config_name_key not in self.selected_containers
@@ -677,9 +686,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     key = f'{self.config_entry_id}_{container_data["EndpointId"]}_{container_data["Name"]}'
                     flat_containers[key] = container_data
                     _LOGGER.debug(
-                        "Added to flat structure: %s -> %s",
+                        "Added to flat structure: %s -> %s (container_id=%s, endpoint=%s)",
                         key,
                         container_data.get("Name", "unknown"),
+                        container_data.get("Id", "unknown"),
+                        container_data["EndpointId"],
                     )
             else:
                 _LOGGER.debug("No containers found for endpoint %s", endpoint_id)

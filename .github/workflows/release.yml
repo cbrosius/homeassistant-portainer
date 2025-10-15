@@ -33,15 +33,9 @@ jobs:
           TAG_NAME=${GITHUB_REF#refs/tags/} # Remove refs/tags/
           TAG_NAME=${TAG_NAME#v}            # Remove leading v if present
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-      - name: Update manifest.json version
+      - name: Update version
         run: |
-          FILE=custom_components/portainer/manifest.json
-          VERSION="$TAG_NAME"
-          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            VERSION="${VERSION}-beta"
-          fi
-          echo "Setting manifest version to: $VERSION"
-          jq --arg ver "$VERSION" '.version=$ver' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          python3 .github/update_version.py --version $TAG_NAME
       - name: Zip portainer dir
         run: |
           cd custom_components/portainer

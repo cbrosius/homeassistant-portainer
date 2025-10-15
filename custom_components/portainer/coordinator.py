@@ -134,7 +134,11 @@ class PortainerCoordinator(DataUpdateCoordinator):
     # ---------------------------
     def connected(self) -> bool:
         """Return connected state."""
-        return self.api.connected()
+        try:
+            return self.api.connected()
+        except Exception as error:
+            _LOGGER.warning("Error checking Portainer connection for %s: %s", self.name, error)
+            return False
 
     # ---------------------------
     #   _async_update_data
@@ -151,16 +155,27 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
         try:
             self.raw_data = {}
+            _LOGGER.debug("Starting Portainer data update for %s", self.name)
+
+            # Get endpoints first
             await self.hass.async_add_executor_job(self.get_endpoints)
+            _LOGGER.debug("Retrieved %d endpoints", len(self.raw_data.get("endpoints", {})))
+
+            # Get containers for each endpoint
             await self.hass.async_add_executor_job(self.get_containers)
+            _LOGGER.debug("Retrieved %d containers", len(self.raw_data.get("containers", {})))
+
+            # Get stacks
             await self.hass.async_add_executor_job(self.get_stacks)
+            _LOGGER.debug("Retrieved %d stacks", len(self.raw_data.get("stacks", {})))
 
             # Create/update endpoint devices in the registry before entities are created.
             # This prevents race conditions where a container device is created before
             # its parent endpoint device.
             self._create_endpoint_devices()
+            _LOGGER.debug("Created endpoint devices")
         except Exception as error:
-            _LOGGER.error("Error updating Portainer data: %s", error)
+            _LOGGER.error("Error updating Portainer data for %s: %s", self.name, error)
             raise UpdateFailed(error) from error
         finally:
             if lock_acquired:
@@ -268,9 +283,16 @@ class PortainerCoordinator(DataUpdateCoordinator):
         """Get endpoints."""
 
         self.raw_data["endpoints"] = {}
+        endpoints_response = self.api.query("endpoints")
+        _LOGGER.debug(
+            "Endpoints API response: type=%s, count=%d",
+            type(endpoints_response),
+            len(endpoints_response) if endpoints_response else 0
+        )
+
         all_endpoints = parse_api(
             data={},
-            source=self.api.query("endpoints"),
+            source=endpoints_response,
             key="Id",
             vals=[
                 {"name": "Id", "default": 0},
@@ -284,7 +306,14 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 },  # Add DockerVersion here with default
             ],
         )
+
+        _LOGGER.debug(
+            "Parsed endpoints: %d endpoints",
+            len(all_endpoints) if all_endpoints else 0
+        )
+
         if not all_endpoints:
+            _LOGGER.warning("No endpoints found in Portainer response")
             return
         # Process all endpoints, not just selected ones, to ensure device creation
         # Process all endpoints, not just selected ones, to ensure device creation
@@ -330,11 +359,26 @@ class PortainerCoordinator(DataUpdateCoordinator):
                 containers_response = self.api.query(
                     f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
                 )
+
+                containers_count = len(containers_response) if containers_response else 0
                 _LOGGER.debug(
                     "API returned %d containers for endpoint %s",
-                    len(containers_response) if containers_response else 0,
+                    containers_count,
                     eid,
                 )
+
+                # Debug: Log the actual API response structure
+                if containers_response:
+                    _LOGGER.debug(
+                        "Containers response type: %s, first item keys: %s",
+                        type(containers_response),
+                        list(containers_response[0].keys()) if containers_response else "N/A"
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Containers response is None or empty for endpoint %s",
+                        eid
+                    )
 
                 all_containers = parse_api(
                     data=self.raw_data["containers"][eid],

@@ -653,3 +653,24 @@ The VS Code Dev Container provides a complete, isolated development environment 
 - ✅ **Professional development workflow**
 
 This setup ensures all developers work in identical environments, reducing "works on my machine" issues and providing a smooth development experience.
+
+
+### Release Deployment Issues
+If you experience issues after deploying a new release:
+
+**GitHub Release Cache Issue:**
+If you reuse a version tag that was previously used for a failed release, GitHub Actions may use cached build artifacts from the previous release instead of building fresh ones.
+
+**Symptoms:**
+- Integration works in development but fails in production
+- No containers are found despite correct configuration
+- API calls succeed but return empty data
+
+**Solutions:**
+1. **Use unique version tags** for each release (recommended)
+2. **Clear GitHub Actions cache** in repository Settings → Actions → Caches
+3. **Force fresh deployment** by updating the release workflow to clear cache when tags are reused
+
+**Verification:**
+- Check that the deployed `manifest.json` version matches your intended release
+- Verify all integration files are present and up-to-date in the HACS integration directory

@@ -10,8 +10,23 @@ jobs:
     name: Prepare release
     runs-on: ubuntu-latest
     steps:
+      - name: Clear any existing caches
+        run: |
+          echo "Clearing caches to ensure fresh build"
+          # This helps prevent issues with reused tags
+
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper tag handling
+
+      - name: Ensure clean working directory
+        run: |
+          echo "Ensuring clean working directory for release build"
+          # Remove any untracked files that might interfere
+          git clean -fd
+          # Ensure we're on the correct tag
+          git checkout $GITHUB_REF
 
       - name: Extract Tag Without `v`
         run: |

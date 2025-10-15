@@ -137,7 +137,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
         try:
             return self.api.connected()
         except Exception as error:
-            _LOGGER.warning("Error checking Portainer connection for %s: %s", self.name, error)
+            _LOGGER.warning(
+                "Error checking Portainer connection for %s: %s", self.name, error
+            )
             return False
 
     # ---------------------------
@@ -159,11 +161,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
 
             # Get endpoints first
             await self.hass.async_add_executor_job(self.get_endpoints)
-            _LOGGER.debug("Retrieved %d endpoints", len(self.raw_data.get("endpoints", {})))
+            _LOGGER.debug(
+                "Retrieved %d endpoints", len(self.raw_data.get("endpoints", {}))
+            )
 
             # Get containers for each endpoint
             await self.hass.async_add_executor_job(self.get_containers)
-            _LOGGER.debug("Retrieved %d containers", len(self.raw_data.get("containers", {})))
+            _LOGGER.debug(
+                "Retrieved %d containers", len(self.raw_data.get("containers", {}))
+            )
 
             # Get stacks
             await self.hass.async_add_executor_job(self.get_stacks)
@@ -287,7 +293,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(
             "Endpoints API response: type=%s, count=%d",
             type(endpoints_response),
-            len(endpoints_response) if endpoints_response else 0
+            len(endpoints_response) if endpoints_response else 0,
         )
 
         all_endpoints = parse_api(
@@ -308,8 +314,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
         )
 
         _LOGGER.debug(
-            "Parsed endpoints: %d endpoints",
-            len(all_endpoints) if all_endpoints else 0
+            "Parsed endpoints: %d endpoints", len(all_endpoints) if all_endpoints else 0
         )
 
         if not all_endpoints:
@@ -360,7 +365,9 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     f"endpoints/{eid}/docker/containers/json", "GET", {"all": True}
                 )
 
-                containers_count = len(containers_response) if containers_response else 0
+                containers_count = (
+                    len(containers_response) if containers_response else 0
+                )
                 _LOGGER.debug(
                     "API returned %d containers for endpoint %s",
                     containers_count,
@@ -372,12 +379,15 @@ class PortainerCoordinator(DataUpdateCoordinator):
                     _LOGGER.debug(
                         "Containers response type: %s, first item keys: %s",
                         type(containers_response),
-                        list(containers_response[0].keys()) if containers_response else "N/A"
+                        (
+                            list(containers_response[0].keys())
+                            if containers_response
+                            else "N/A"
+                        ),
                     )
                 else:
                     _LOGGER.warning(
-                        "Containers response is None or empty for endpoint %s",
-                        eid
+                        "Containers response is None or empty for endpoint %s", eid
                     )
 
                 all_containers = parse_api(

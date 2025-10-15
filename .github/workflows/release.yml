@@ -36,7 +36,7 @@ jobs:
       - name: Update manifest.json version
         run: |
           FILE=custom_components/portainer/manifest.json
-          VERSION="${{ steps.version.outputs.clean_tag }}"
+          VERSION="$TAG_NAME"
           if [ "${{ github.event.release.prerelease }}" = "true" ]; then
             VERSION="${VERSION}-beta"
           fi

@@ -73,7 +73,11 @@ class PortainerAPI(object):
     #   query
     # ---------------------------
     def query(
-        self, service: str, method: str = "GET", params: Optional[dict[str, Any]] = None
+        self,
+        service: str,
+        method: str = "GET",
+        params: Optional[dict[str, Any]] = None,
+        timeout: int = 10,
     ) -> Optional[List[dict]]:
         """Retrieve data from Portainer."""
         try:
@@ -97,16 +101,18 @@ class PortainerAPI(object):
             url = f"{self._url}{service}"
             if method == "GET":
                 _LOGGER.debug("Portainer API call (GET): %s, params=%s", url, params)
-                response = self._session.get(url, params=params, timeout=10)
+                response = self._session.get(url, params=params, timeout=timeout)
             elif method == "POST":
                 _LOGGER.debug("Portainer API call (POST): %s, json=%s", url, params)
-                response = self._session.post(url, json=params, timeout=10)
+                response = self._session.post(url, json=params, timeout=timeout)
             elif method == "PUT":
                 response = self._session.put(
-                    f"{self._url}{service}", json=params, timeout=10
+                    f"{self._url}{service}", json=params, timeout=timeout
                 )
             elif method == "DELETE":
-                response = self._session.delete(f"{self._url}{service}", timeout=10)
+                response = self._session.delete(
+                    f"{self._url}{service}", timeout=timeout
+                )
             else:
                 _LOGGER.error("Invalid HTTP method: %s", method)
                 self._error = "invalid_method"
@@ -292,8 +298,9 @@ class PortainerAPI(object):
         )
         params = {"pullImage": pull_image} if pull_image else {}
         self.query(
-            f"endpoints/{endpoint_id}/docker/containers/{container_id}/recreate",
+            f"docker/{endpoint_id}/containers/{container_id}/recreate",
             "POST",
             params=params,
+            timeout=60,
         )
         _LOGGER.debug("Portainer API call for recreate container completed.")

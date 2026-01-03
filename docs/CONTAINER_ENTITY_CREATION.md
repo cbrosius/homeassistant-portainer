@@ -136,24 +136,38 @@ else:
    flat_containers[key] = container_data
    ```
 
-### 5. Entity Creation
+### 5. Entity Creation and Migration
 
-**Location**: `entity.py`, `async_create_sensors()`
+**Location**: `sensor.py`, `async_setup_entry()` and `async_migrate_entities()`; `button.py`, `async_setup_entry()`
 
 **Process**:
-1. Iterate through all containers in coordinator data
-2. For each container, check if it should be included:
-   ```python
-   device_identifier = f"{config_entry_id}_{endpoint_id}_{container_name}"
-   config_name_identifier = f"{config_name}_{endpoint_id}_{container_name}"
+1. Iterate through all containers in coordinator data.
+2. For each container, check if it should be included based on selection.
+3. Call `async_migrate_entities()` before adding new entities.
 
-   if device_identifier in selected_containers or config_name_identifier in selected_containers:
-       # Create entity
-   ```
+**Migration & Deduplication Logic**:
+To ensure no duplicates remain from previous hash-based versions:
+1. Fetch all existing entities for the device (including disabled ones).
+2. Group entries by their sensor key prefix.
+3. Identify a "winner":
+   - Priority 1: An entry already using the new stable ID.
+   - Priority 2: An enabled entry.
+   - Priority 3: The first entry found.
+4. If no entry has the stable ID, migrate the "winner" to it.
+5. **Delete all other duplicates** associated with that same sensor/button on that device.
 
-3. Create `ContainerSensor` entities for each valid container
+### 6. Unique ID Generation
 
-### 6. Device Registration
+**Location**: `entity.py`, `PortainerEntity.__init__()`
+
+**Stable Format**:
+For container entities, the `unique_id` is now independent of the volatile Docker ID:
+```python
+unique_id = f"{DOMAIN}-{key}-{endpoint_id}_{container_name}_{config_entry_id}"
+```
+This ensures stability across container recreations.
+
+### 7. Device Registration
 
 **Location**: `sensor.py`, `ContainerSensor.device_info`
 

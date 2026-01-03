@@ -603,5 +603,3 @@ class TestAPIParsers:
             result = utc_from_iso_string(iso_string)
             assert isinstance(result, datetime)
             assert result.year == 2021
-
-

@@ -57,7 +57,9 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
         entry_data = hass.data[DOMAIN].get(config_entry_id)
         if not entry_data:
-            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            _LOGGER.error(
+                "Config entry %s not found in %s data.", config_entry_id, DOMAIN
+            )
             continue
         coordinator = entry_data.get("coordinator")
         pull_image = call.data.get(
@@ -146,7 +148,9 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
     for config_entry_id, device_info_list in devices_by_config_entry.items():
         entry_data = hass.data[DOMAIN].get(config_entry_id)
         if not entry_data:
-            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            _LOGGER.error(
+                "Config entry %s not found in %s data.", config_entry_id, DOMAIN
+            )
             continue
         coordinator = entry_data.get("coordinator")
         if not coordinator:
@@ -297,7 +301,9 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
     for config_entry_id, stack_ids in devices_by_config_entry.items():
         entry_data = hass.data[DOMAIN].get(config_entry_id)
         if not entry_data:
-            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            _LOGGER.error(
+                "Config entry %s not found in %s data.", config_entry_id, DOMAIN
+            )
             continue
         coordinator = entry_data.get("coordinator")
         if not coordinator:
@@ -309,11 +315,11 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                 # Get the stack details to find endpoint_id
                 # Stack ID is global in Portainer API for stacks but we need endpointId for the query
                 # Actually, the stacks endpoint is /stacks/{id}/{action}?endpointId={endpointId}
-                
-                # We need to find the endpointId for this stack. 
+
+                # We need to find the endpointId for this stack.
                 # The coordinator data should have it if we've synced.
                 stack_info = None
-                
+
                 # Check if we can find it in the coordinator's cached data
                 # Since we don't have a get_specific_stack, we'll try to find it in the data
                 if coordinator.api.query:
@@ -321,14 +327,18 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                     stack_info = await hass.async_add_executor_job(
                         coordinator.api.query, f"stacks/{stack_id}", "GET", {}
                     )
-                
+
                 if not stack_info:
-                    _LOGGER.error("Could not find stack info for stack ID '%s'", stack_id)
+                    _LOGGER.error(
+                        "Could not find stack info for stack ID '%s'", stack_id
+                    )
                     continue
-                    
+
                 endpoint_id = stack_info.get("EndpointId")
                 if not endpoint_id:
-                    _LOGGER.error("Could not find endpoint ID for stack ID '%s'", stack_id)
+                    _LOGGER.error(
+                        "Could not find endpoint ID for stack ID '%s'", stack_id
+                    )
                     continue
 
                 service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"

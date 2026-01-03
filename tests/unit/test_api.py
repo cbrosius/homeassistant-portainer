@@ -533,9 +533,7 @@ class TestPortainerAPI:
         api._session = mock_session
 
         # Should handle error and log with container context
-        result = api.query(
-            "docker/1/containers/abc123def456/recreate", "POST", {}
-        )
+        result = api.query("docker/1/containers/abc123def456/recreate", "POST", {})
 
         assert result is None
         # Verify the call was made (even though it failed)

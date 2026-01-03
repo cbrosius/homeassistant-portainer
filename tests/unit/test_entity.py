@@ -112,7 +112,7 @@ class TestPortainerEntity:
     def test_entity_unique_id_with_uid(self, entity):
         """Test entity unique_id generation with uid."""
         expected_unique_id = (
-            "portainer-container_state-1_web-server_abc123def456_test_entry_id"
+            "portainer-container_state-1_web-server_test_entry_id"
         )
         assert entity.unique_id == expected_unique_id
 

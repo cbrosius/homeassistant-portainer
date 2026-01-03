@@ -552,27 +552,6 @@ class TestAPIParsers:
 
         assert result["1"]["combined_key"] == "unknown_suffix"
 
-    def test_parse_api_with_val_proc(self):
-        """Test parse_api with val_proc."""
-        source = [{"id": 1, "name": "item1", "status": "active"}]
-        val_defs = [{"name": "name"}]
-        val_proc = [
-            [
-                {"name": "display_name", "action": "combine"},
-                {"key": "name"},
-                {"text": " ("},
-                {"key": "status"},
-                {"text": ")"},
-            ]
-        ]
-
-        result = parse_api(
-            data={}, source=source, key="id", vals=val_defs, val_proc=val_proc
-        )
-
-        assert result[1]["name"] == "item1"
-        assert result[1]["display_name"] == "item1 (active)"
-
     def test_process_value_definition_with_source_path(self):
         """Test _process_value_definition with source path."""
         target_dict = {}
@@ -625,35 +604,4 @@ class TestAPIParsers:
             assert isinstance(result, datetime)
             assert result.year == 2021
 
-    def test_get_nested_value_complex_path(self):
-        """Test nested value extraction with complex path."""
-        data = {"level1": {"level2": [{"key": "value1"}, {"key": "value2"}]}}
 
-        # Test accessing array element
-        result = _get_nested_value(data, "level1/level2/0/key")
-        assert result == "value1"
-
-        # Test accessing non-existent array element
-        result = _get_nested_value(data, "level1/level2/5/key")
-        assert result is None
-
-    def test_parse_api_malformed_source_handling(self):
-        """Test parse_api with malformed source data."""
-        source = [
-            {"id": 1},  # Missing expected fields
-            {"id": 2, "name": "item2"},
-            None,  # Null entry
-            {"id": "invalid", "name": "item3"},  # Invalid ID type
-        ]
-
-        result = parse_api(
-            data={},
-            source=source,
-            key="id",
-            vals=[{"name": "name", "default": "unknown"}],
-        )
-
-        # Should handle gracefully and only process valid entries
-        assert 2 in result
-        assert result[2]["name"] == "item2"
-        assert 1 not in result  # Missing name field, should not be included

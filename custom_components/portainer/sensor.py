@@ -172,8 +172,10 @@ async def async_migrate_entities(
         if not device:
             continue
 
-        # Find existing entities in the registry for this device
-        existing_entries = er.async_entries_for_device(ent_reg, device.id)
+        # Find existing entities in the registry for this device (including disabled ones)
+        existing_entries = er.async_entries_for_device(
+            ent_reg, device.id, include_disabled_entities=True
+        )
         # Group entries that match this specific sensor's prefix
         key_prefix = f"{DOMAIN}-{entity.description.key}-"
         matching_entries = [
@@ -194,24 +196,18 @@ async def async_migrate_entities(
                 winner = entry
                 break
 
-        if winner:
-            # Target ID exists, remove all other entries matching the prefix
-            for entry in matching_entries:
-                if entry.entity_id != winner.entity_id:
-                    _LOGGER.info(
-                        "Removing duplicate entity %s (unique_id: %s) because stable ID %s is already taken by %s",
-                        entry.entity_id,
-                        entry.unique_id,
-                        target_unique_id,
-                        winner.entity_id,
-                    )
-                    ent_reg.async_remove(entry.entity_id)
-        else:
-            # 2. No entry has the target unique_id yet. Pick the first one and migrate it.
-            winner = matching_entries[0]
+        # 2. If no target ID exists, prefer an enabled entry over a disabled one
+        if not winner:
+            enabled_entries = [e for e in matching_entries if not e.disabled_by]
+            if enabled_entries:
+                winner = enabled_entries[0]
+            else:
+                winner = matching_entries[0]
+
             _LOGGER.info(
-                "Migrating entity %s from unique_id %s to %s",
+                "Migrating entity %s (enabled=%s) from unique_id %s to %s",
                 winner.entity_id,
+                not bool(winner.disabled_by),
                 winner.unique_id,
                 target_unique_id,
             )
@@ -227,13 +223,16 @@ async def async_migrate_entities(
                 )
                 continue
 
-            # Remove any other duplicates that weren't the chosen winner
-            for i in range(1, len(matching_entries)):
-                entry = matching_entries[i]
+        # 3. Target ID (winner) now exists, remove all other entries matching the prefix
+        for entry in matching_entries:
+            if entry.entity_id != winner.entity_id:
                 _LOGGER.info(
-                    "Removing duplicate entity %s (unique_id: %s)",
+                    "Removing duplicate entity %s (unique_id: %s, enabled=%s) because stable ID %s is handled by %s",
                     entry.entity_id,
                     entry.unique_id,
+                    not bool(entry.disabled_by),
+                    target_unique_id,
+                    winner.entity_id,
                 )
                 ent_reg.async_remove(entry.entity_id)
 

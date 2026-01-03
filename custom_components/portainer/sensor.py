@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -12,8 +13,14 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import device_registry as dr, entity_platform as ep
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_platform as ep,
+    entity_registry as er,
+)
 from homeassistant.helpers.typing import StateType
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     DOMAIN,
@@ -108,6 +115,10 @@ async def async_setup_entry(
             platform.async_register_entity_service(service[0], service[1], service[2])
 
     entities = await async_create_sensors(coordinator, descriptions, dispatcher)
+
+    # Migrate existing entities to stable unique IDs if needed
+    await async_migrate_entities(hass, config_entry, entities)
+
     async_add_entities_callback(entities, update_before_add=True)
 
     @callback
@@ -132,6 +143,98 @@ async def async_setup_entry(
             hass, f"{config_entry.entry_id}_update", async_update_controller
         )
     )
+
+
+async def async_migrate_entities(
+    hass: HomeAssistant, config_entry: ConfigEntry, entities: list[PortainerEntity]
+) -> None:
+    """Migrate entities to stable unique IDs."""
+    ent_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
+
+    for entity in entities:
+        # We only care about container entities which now have a different stable unique_id
+        if (
+            not hasattr(entity, "description")
+            or entity.description.data_path != "containers"
+        ):
+            continue
+
+        # Get the device for this entity to see its identifiers
+        device_info = entity.device_info
+        if not device_info or "identifiers" not in device_info:
+            continue
+
+        # Stable device identifier format: (DOMAIN, f"{config_entry_id}_{endpoint_id}_{container_name}")
+        device_identifier = list(device_info["identifiers"])[0]
+        device = dev_reg.async_get_device(identifiers={device_identifier})
+
+        if not device:
+            continue
+
+        # Find existing entities in the registry for this device (including disabled ones)
+        existing_entries = er.async_entries_for_device(
+            ent_reg, device.id, include_disabled_entities=True
+        )
+        # Group entries that match this specific sensor's prefix
+        key_prefix = f"{DOMAIN}-{entity.description.key}-"
+        matching_entries = [
+            e
+            for e in existing_entries
+            if e.unique_id.startswith(key_prefix) and e.platform == DOMAIN
+        ]
+
+        if not matching_entries:
+            continue
+
+        target_unique_id = entity.unique_id
+        winner = None
+
+        # 1. Check if an entry already has the target stable unique_id
+        for entry in matching_entries:
+            if entry.unique_id == target_unique_id:
+                winner = entry
+                break
+
+        # 2. If no target ID exists, prefer an enabled entry over a disabled one
+        if not winner:
+            enabled_entries = [e for e in matching_entries if not e.disabled_by]
+            if enabled_entries:
+                winner = enabled_entries[0]
+            else:
+                winner = matching_entries[0]
+
+            _LOGGER.info(
+                "Migrating entity %s (enabled=%s) from unique_id %s to %s",
+                winner.entity_id,
+                not bool(winner.disabled_by),
+                winner.unique_id,
+                target_unique_id,
+            )
+            try:
+                ent_reg.async_update_entity(
+                    winner.entity_id, new_unique_id=target_unique_id
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Primary migration failed for %s to %s, likely a collision across devices",
+                    winner.entity_id,
+                    target_unique_id,
+                )
+                continue
+
+        # 3. Target ID (winner) now exists, remove all other entries matching the prefix
+        for entry in matching_entries:
+            if entry.entity_id != winner.entity_id:
+                _LOGGER.info(
+                    "Removing duplicate entity %s (unique_id: %s, enabled=%s) because stable ID %s is handled by %s",
+                    entry.entity_id,
+                    entry.unique_id,
+                    not bool(entry.disabled_by),
+                    target_unique_id,
+                    winner.entity_id,
+                )
+                ent_reg.async_remove(entry.entity_id)
 
 
 # ---------------------------

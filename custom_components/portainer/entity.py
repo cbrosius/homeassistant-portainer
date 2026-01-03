@@ -99,28 +99,31 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
         self.sw_version = ""
         self.coordinator = coordinator
         self.description = description
-        self._inst = coordinator.config_entry.data[CONF_NAME]
+        self._inst = "Portainer"
+        if coordinator and coordinator.config_entry:
+            self._inst = coordinator.config_entry.data.get(CONF_NAME, "Portainer")
         self._attr_extra_state_attributes = {ATTR_ATTRIBUTION: ATTRIBUTION}
         self._uid = uid
-        self._data = coordinator.data[self.description.data_path]
-        if self._uid:
-            if self.description.data_path == "containers":
-                self._data = coordinator.data[self.description.data_path][self._uid]
-            else:
-                self._data = coordinator.data[self.description.data_path][self._uid]
+        self._data = {}
+        if coordinator and hasattr(coordinator, "data") and coordinator.data:
+            self._data = coordinator.data.get(self.description.data_path, {})
+
+        if self._uid and self._data:
+            # If self._data is a list of all items (from a path), get the specific one
+            if isinstance(self._data, dict) and self._uid in self._data:
+                self._data = self._data[self._uid]
 
             # Use Portainer's Id directly for unique_id if available
             portainer_id = self._data.get("Id")
             config_entry_id = self.get_config_entry_id()
             if portainer_id:
                 if self.description.data_path == "containers":
-                    unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{portainer_id}_{config_entry_id}'
+                    unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{config_entry_id}'
                     _LOGGER.debug(
-                        "Generated container unique_id: %s (endpoint=%s, name=%s, container_id=%s, config_entry=%s)",
+                        "Generated container unique_id: %s (endpoint=%s, name=%s, config_entry=%s)",
                         unique_id,
                         self._data.get("EndpointId"),
                         self._data.get("Name"),
-                        portainer_id,
                         config_entry_id,
                     )
                     self._attr_unique_id = unique_id
@@ -285,4 +288,7 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
     def get_config_entry_id(self):
         if self.coordinator and self.coordinator.config_entry:
             return self.coordinator.config_entry.entry_id
-        return self.hass.config_entries.async_get_entry(self.handler)
+        if hasattr(self, "handler") and self.handler:
+            entry = self.hass.config_entries.async_get_entry(self.handler)
+            return entry.entry_id if entry else self.handler
+        return None

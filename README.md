@@ -244,8 +244,10 @@ logger:
 #### Debug Messages for Troubleshooting
 When debug logging is enabled, you'll see detailed messages that can help diagnose issues:
 
-**Entity Creation:**
-- `Generated container unique_id: [details]` - Shows how unique IDs are created for entities
+**Entity Creation & Migration:**
+- `Generated container unique_id: [details]` - Shows the stable unique ID (endpoint + name)
+- `Migrating entity [id] from unique_id [old] to [new]` - Shows the automatic migration of old hash-based IDs to the new stable format
+- `Removing duplicate entity [id] ... because stable ID is handled by [winner]` - Shows the automatic cleanup of duplicated sensors
 - `Creating container device info: [details]` - Shows device identifier generation
 
 **Container Processing:**
@@ -254,9 +256,9 @@ When debug logging is enabled, you'll see detailed messages that can help diagno
 - `Checking container [name] on endpoint [id]` - Container filtering logic
 
 **Common Issues and Debug Patterns:**
-- **Duplicate devices**: Look for identical device identifiers across different config entries
-- **Missing entities**: Check container filtering and selection logic messages
-- **Device conflicts**: Monitor device info creation for identifier collisions
+- **Duplicate devices**: Look for messages about duplicated entities being removed during migration.
+- **Missing entities**: Check container filtering and selection logic messages.
+- **Device conflicts**: Monitor device info creation for identifier collisions.
 
 ### Getting Help
 * Check the [GitHub Issues](https://github.com/cbrosius/homeassistant-portainer/issues) page for known issues

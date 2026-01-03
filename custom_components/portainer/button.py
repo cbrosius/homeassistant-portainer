@@ -14,7 +14,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers import entity_platform as ep
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_platform as ep,
+    entity_registry as er,
+)
 from .const import DOMAIN, CONF_FEATURE_USE_ACTION_BUTTONS
 from .coordinator import PortainerCoordinator
 from .entity import PortainerEntity, async_create_sensors
@@ -134,6 +138,12 @@ async def async_setup_entry(
     }
 
     entities = await async_create_sensors(coordinator, BUTTON_TYPES, dispatcher)
+
+    # Migrate existing entities to stable unique IDs if needed
+    from .sensor import async_migrate_entities
+
+    await async_migrate_entities(hass, config_entry, entities)
+
     async_add_entities_callback(entities, update_before_add=True)
 
     @callback

@@ -114,13 +114,12 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
             config_entry_id = self.get_config_entry_id()
             if portainer_id:
                 if self.description.data_path == "containers":
-                    unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{portainer_id}_{config_entry_id}'
+                    unique_id = f'{DOMAIN}-{self.description.key}-{self._data.get("EndpointId")}_{self._data.get("Name")}_{config_entry_id}'
                     _LOGGER.debug(
-                        "Generated container unique_id: %s (endpoint=%s, name=%s, container_id=%s, config_entry=%s)",
+                        "Generated container unique_id: %s (endpoint=%s, name=%s, config_entry=%s)",
                         unique_id,
                         self._data.get("EndpointId"),
                         self._data.get("Name"),
-                        portainer_id,
                         config_entry_id,
                     )
                     self._attr_unique_id = unique_id

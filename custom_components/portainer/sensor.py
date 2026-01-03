@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -12,8 +13,14 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import device_registry as dr, entity_platform as ep
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_platform as ep,
+    entity_registry as er,
+)
 from homeassistant.helpers.typing import StateType
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     DOMAIN,
@@ -108,6 +115,10 @@ async def async_setup_entry(
             platform.async_register_entity_service(service[0], service[1], service[2])
 
     entities = await async_create_sensors(coordinator, descriptions, dispatcher)
+
+    # Migrate existing entities to stable unique IDs if needed
+    await async_migrate_entities(hass, config_entry, entities)
+
     async_add_entities_callback(entities, update_before_add=True)
 
     @callback
@@ -132,6 +143,63 @@ async def async_setup_entry(
             hass, f"{config_entry.entry_id}_update", async_update_controller
         )
     )
+
+
+async def async_migrate_entities(
+    hass: HomeAssistant, config_entry: ConfigEntry, entities: list[PortainerEntity]
+) -> None:
+    """Migrate entities to stable unique IDs."""
+    ent_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
+
+    for entity in entities:
+        # We only care about container entities which now have a different stable unique_id
+        if (
+            not hasattr(entity, "description")
+            or entity.description.data_path != "containers"
+        ):
+            continue
+
+        # Get the device for this entity to see its identifiers
+        device_info = entity.device_info
+        if not device_info or "identifiers" not in device_info:
+            continue
+
+        # Stable device identifier format: (DOMAIN, f"{config_entry_id}_{endpoint_id}_{container_name}")
+        device_identifier = list(device_info["identifiers"])[0]
+        device = dev_reg.async_get_device(identifiers={device_identifier})
+
+        if not device:
+            continue
+
+        # Find existing entities in the registry for this device
+        existing_entries = er.async_entries_for_device(ent_reg, device.id)
+        for entry in existing_entries:
+            # Check if this entry belongs to our integration
+            if entry.platform != DOMAIN:
+                continue
+
+            # entry.unique_id looks like: portainer-key-endpoint_name_hash_configid
+            # entry.unique_id should look like: portainer-key-endpoint_name_configid
+            # If the current unique_id in registry doesn't match the one we just generated
+            # for the same logical entity (same device and same sensor key), migrate it.
+            if entry.unique_id.startswith(f"{DOMAIN}-{entity.description.key}-"):
+                if entry.unique_id != entity.unique_id:
+                    _LOGGER.info(
+                        "Migrating unique_id for %s from %s to %s",
+                        entry.entity_id,
+                        entry.unique_id,
+                        entity.unique_id,
+                    )
+                    try:
+                        ent_reg.async_update_entity(
+                            entry.entity_id, new_unique_id=entity.unique_id
+                        )
+                    except ValueError:
+                        _LOGGER.warning(
+                            "Failed to migrate unique_id for %s, maybe it already exists?",
+                            entry.entity_id,
+                        )
 
 
 # ---------------------------

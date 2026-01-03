@@ -444,13 +444,14 @@ class TestPortainerAPI:
 
         api._session = mock_session
 
-        # Should not raise exception
-        api.recreate_container("1", "abc123def456", True)
+        # Should not raise exception and return True
+        result = api.recreate_container("1", "abc123def456", True)
 
+        assert result is True
         mock_session.post.assert_called_once_with(
-            "http://localhost:9000/api/endpoints/1/docker/containers/abc123def456/recreate",
+            "http://localhost:9000/api/docker/1/containers/abc123def456/recreate",
             json={"pullImage": True},
-            timeout=10,
+            timeout=60,
         )
 
     def test_recreate_container_without_pull_image(self, api, mock_session):
@@ -463,15 +464,62 @@ class TestPortainerAPI:
 
         api._session = mock_session
 
-        api.recreate_container("1", "abc123def456", False)
+        result = api.recreate_container("1", "abc123def456", False)
 
+        assert result is True
         mock_session.post.assert_called_once_with(
-            "http://localhost:9000/api/endpoints/1/docker/containers/abc123def456/recreate",
+            "http://localhost:9000/api/docker/1/containers/abc123def456/recreate",
             json={},
-            timeout=10,
+            timeout=60,
         )
 
-    def test_recreate_container_with_recreate_in_path_logging(self, api, mock_session):
+    def test_recreate_container_failure(self, api, mock_session):
+        """Test failed container recreation."""
+        mock_response = Mock()
+        mock_response.status_code = 500  # Force error
+        mock_response.content = json.dumps(get_error_response_500()).encode()
+        mock_response.json.return_value = get_error_response_500()
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error"
+        )
+        mock_session.post.return_value = mock_response
+
+        api._session = mock_session
+
+        # Should handle error and return False
+        result = api.recreate_container("1", "abc123def456", True)
+
+        assert result is False
+        assert api._error == 500
+        mock_session.post.assert_called_once_with(
+            "http://localhost:9000/api/docker/1/containers/abc123def456/recreate",
+            json={"pullImage": True},
+            timeout=60,
+        )
+
+    def test_recreate_container_connection_error(self, api, mock_session):
+        """Test container recreation with connection error."""
+        mock_session.post.side_effect = requests.ConnectionError("Connection failed")
+        api._session = mock_session
+
+        result = api.recreate_container("1", "abc123def456", True)
+
+        assert result is False
+        assert api._error == "no_response"
+        mock_session.post.assert_called_once()
+
+    def test_recreate_container_timeout(self, api, mock_session):
+        """Test container recreation with timeout error."""
+        mock_session.post.side_effect = requests.Timeout("Request timed out")
+        api._session = mock_session
+
+        result = api.recreate_container("1", "abc123def456", True)
+
+        assert result is False
+        assert api._error == "no_response"
+        mock_session.post.assert_called_once()
+
+    def test_recreate_container_with_special_logging(self, api, mock_session):
         """Test container recreation with special logging for recreate path."""
         mock_response = Mock()
         mock_response.status_code = 500  # Force error for logging test
@@ -486,7 +534,7 @@ class TestPortainerAPI:
 
         # Should handle error and log with container context
         result = api.query(
-            "endpoints/1/docker/containers/abc123def456/recreate", "POST", {}
+            "docker/1/containers/abc123def456/recreate", "POST", {}
         )
 
         assert result is None
@@ -530,3 +578,25 @@ class TestPortainerAPI:
             assert result is None
             assert api._error == "lock_error"
             mock_lock.acquire.assert_called_once()
+
+    def test_recreate_container_lock_timeout(self, api, mock_session):
+        """Test container recreation lock acquisition timeout."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = json.dumps(get_container_recreate_response()).encode()
+        mock_response.json.return_value = get_container_recreate_response()
+        mock_session.post.return_value = mock_response
+
+        api._session = mock_session
+
+        # Mock the lock object to simulate acquire timeout
+        with patch.object(api, "lock") as mock_lock:
+            mock_lock.acquire.side_effect = Exception("Lock timeout")
+
+            result = api.recreate_container("1", "abc123def456", True)
+
+            assert result is False
+            assert api._error == "lock_error"
+            mock_lock.acquire.assert_called_once()
+            # Should not make API call if lock acquisition fails
+            mock_session.post.assert_not_called()

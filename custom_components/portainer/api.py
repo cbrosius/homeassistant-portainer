@@ -289,7 +289,7 @@ class PortainerAPI(object):
     # ---------------------------
     def recreate_container(
         self, endpoint_id: str, container_id: str, pull_image: bool = True
-    ) -> None:
+    ) -> bool:
         """Recreate a container."""
         _LOGGER.debug(
             "Calling Portainer API to recreate container %s on endpoint %s",
@@ -304,3 +304,4 @@ class PortainerAPI(object):
             timeout=60,
         )
         _LOGGER.debug("Portainer API call for recreate container completed.")
+        return not self._error

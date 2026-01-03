@@ -71,14 +71,21 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
                     f"{config_entry_id}_", "", 1
                 )
                 endpoint_id, container_name = identifier_without_config.split("_", 1)
-                await coordinator.async_recreate_container(
+                if await coordinator.async_recreate_container(
                     endpoint_id, container_name, pull_image
-                )
-                _LOGGER.info(
-                    "Successfully recreated container '%s' on instance '%s'",
-                    container_name,
-                    coordinator.name,
-                )
+                ):
+                    _LOGGER.info(
+                        "Successfully recreated container '%s' on instance '%s'",
+                        container_name,
+                        coordinator.name,
+                    )
+                else:
+                    _LOGGER.error(
+                        "Failed to recreate container '%s' on instance '%s': %s",
+                        container_name,
+                        coordinator.name,
+                        coordinator.api.error or "unknown error",
+                    )
             except (KeyError, ValueError) as e:
                 _LOGGER.error(
                     "Failed to recreate container '%s' on instance '%s': %s",
@@ -179,12 +186,21 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
                 await call.hass.async_add_executor_job(
                     coordinator.api.query, service_path, "POST", {}
                 )
-                if container_name:
-                    _LOGGER.info(
-                        "Successfully performed '%s' on container '%s' on instance '%s'",
+                if not coordinator.api.error:
+                    if container_name:
+                        _LOGGER.info(
+                            "Successfully performed '%s' on container '%s' on instance '%s'",
+                            action,
+                            container_name,
+                            coordinator.name,
+                        )
+                else:
+                    _LOGGER.error(
+                        "Failed to perform '%s' on container '%s' on instance '%s': %s",
                         action,
                         container_name,
                         coordinator.name,
+                        coordinator.api.error or "unknown error",
                     )
 
                 # If action is "remove", also remove the device and its entities from Home Assistant
@@ -305,12 +321,21 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                     coordinator.api.query, service_path, "POST", {}
                 )
                 stack_name = stack_data.get("Name", stack_id)
-                _LOGGER.info(
-                    "Successfully performed '%s' on stack '%s' on instance '%s'",
-                    action,
-                    stack_name,
-                    coordinator.name,
-                )
+                if not coordinator.api.error:
+                    _LOGGER.info(
+                        "Successfully performed '%s' on stack '%s' on instance '%s'",
+                        action,
+                        stack_name,
+                        coordinator.name,
+                    )
+                else:
+                    _LOGGER.error(
+                        "Failed to perform '%s' on stack '%s' on instance '%s': %s",
+                        action,
+                        stack_name,
+                        coordinator.name,
+                        coordinator.api.error or "unknown error",
+                    )
             except Exception as e:
                 stack_name = (
                     stack_data.get("Name", stack_id)

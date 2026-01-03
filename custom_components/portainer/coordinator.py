@@ -817,7 +817,7 @@ class PortainerCoordinator(DataUpdateCoordinator):
             container_name,
             endpoint_id,
         )
-        await self.hass.async_add_executor_job(
+        return await self.hass.async_add_executor_job(
             self.api.recreate_container, endpoint_id, container_id, pull_image
         )
 

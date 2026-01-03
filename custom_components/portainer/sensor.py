@@ -174,32 +174,68 @@ async def async_migrate_entities(
 
         # Find existing entities in the registry for this device
         existing_entries = er.async_entries_for_device(ent_reg, device.id)
-        for entry in existing_entries:
-            # Check if this entry belongs to our integration
-            if entry.platform != DOMAIN:
-                continue
+        # Group entries that match this specific sensor's prefix
+        key_prefix = f"{DOMAIN}-{entity.description.key}-"
+        matching_entries = [
+            e
+            for e in existing_entries
+            if e.unique_id.startswith(key_prefix) and e.platform == DOMAIN
+        ]
 
-            # entry.unique_id looks like: portainer-key-endpoint_name_hash_configid
-            # entry.unique_id should look like: portainer-key-endpoint_name_configid
-            # If the current unique_id in registry doesn't match the one we just generated
-            # for the same logical entity (same device and same sensor key), migrate it.
-            if entry.unique_id.startswith(f"{DOMAIN}-{entity.description.key}-"):
-                if entry.unique_id != entity.unique_id:
+        if not matching_entries:
+            continue
+
+        target_unique_id = entity.unique_id
+        winner = None
+
+        # 1. Check if an entry already has the target stable unique_id
+        for entry in matching_entries:
+            if entry.unique_id == target_unique_id:
+                winner = entry
+                break
+
+        if winner:
+            # Target ID exists, remove all other entries matching the prefix
+            for entry in matching_entries:
+                if entry.entity_id != winner.entity_id:
                     _LOGGER.info(
-                        "Migrating unique_id for %s from %s to %s",
+                        "Removing duplicate entity %s (unique_id: %s) because stable ID %s is already taken by %s",
                         entry.entity_id,
                         entry.unique_id,
-                        entity.unique_id,
+                        target_unique_id,
+                        winner.entity_id,
                     )
-                    try:
-                        ent_reg.async_update_entity(
-                            entry.entity_id, new_unique_id=entity.unique_id
-                        )
-                    except ValueError:
-                        _LOGGER.warning(
-                            "Failed to migrate unique_id for %s, maybe it already exists?",
-                            entry.entity_id,
-                        )
+                    ent_reg.async_remove(entry.entity_id)
+        else:
+            # 2. No entry has the target unique_id yet. Pick the first one and migrate it.
+            winner = matching_entries[0]
+            _LOGGER.info(
+                "Migrating entity %s from unique_id %s to %s",
+                winner.entity_id,
+                winner.unique_id,
+                target_unique_id,
+            )
+            try:
+                ent_reg.async_update_entity(
+                    winner.entity_id, new_unique_id=target_unique_id
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Primary migration failed for %s to %s, likely a collision across devices",
+                    winner.entity_id,
+                    target_unique_id,
+                )
+                continue
+
+            # Remove any other duplicates that weren't the chosen winner
+            for i in range(1, len(matching_entries)):
+                entry = matching_entries[i]
+                _LOGGER.info(
+                    "Removing duplicate entity %s (unique_id: %s)",
+                    entry.entity_id,
+                    entry.unique_id,
+                )
+                ent_reg.async_remove(entry.entity_id)
 
 
 # ---------------------------

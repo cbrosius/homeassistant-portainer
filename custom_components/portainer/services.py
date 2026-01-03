@@ -55,7 +55,11 @@ async def _handle_recreate_container(call: ServiceCall) -> None:
         devices_by_config_entry[config_entry_id].append(identifier)
 
     for config_entry_id, docker_container_ids in devices_by_config_entry.items():
-        coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
+        entry_data = hass.data[DOMAIN].get(config_entry_id)
+        if not entry_data:
+            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            continue
+        coordinator = entry_data.get("coordinator")
         pull_image = call.data.get(
             "pull_image", True
         )  # Default to True if not provided
@@ -140,7 +144,11 @@ async def _handle_perform_container_action(call: ServiceCall) -> None:
         devices_by_config_entry[config_entry_id].append((device_id, identifier))
 
     for config_entry_id, device_info_list in devices_by_config_entry.items():
-        coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
+        entry_data = hass.data[DOMAIN].get(config_entry_id)
+        if not entry_data:
+            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            continue
+        coordinator = entry_data.get("coordinator")
         if not coordinator:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
@@ -287,69 +295,75 @@ async def _handle_perform_stack_action(call: ServiceCall) -> None:
                 devices_by_config_entry[config_entry_id].append(stack_id_str)
 
     for config_entry_id, stack_ids in devices_by_config_entry.items():
-        coordinator = hass.data[DOMAIN][config_entry_id].get("coordinator")
+        entry_data = hass.data[DOMAIN].get(config_entry_id)
+        if not entry_data:
+            _LOGGER.error("Config entry %s not found in %s data.", config_entry_id, DOMAIN)
+            continue
+        coordinator = entry_data.get("coordinator")
         if not coordinator:
             _LOGGER.error("Coordinator for config entry %s not found.", config_entry_id)
             continue
 
         for stack_id in stack_ids:
-            # Get stack data from API directly, not just from selected stacks
             try:
-                stack_data = await call.hass.async_add_executor_job(
-                    coordinator.api.query, f"stacks/{stack_id}"
-                )
-                if not stack_data:
-                    _LOGGER.warning(
-                        "Stack '%s' not found in Portainer API for instance '%s'. Skipping.",
-                        stack_id,
-                        coordinator.name,
+                # Get the stack details to find endpoint_id
+                # Stack ID is global in Portainer API for stacks but we need endpointId for the query
+                # Actually, the stacks endpoint is /stacks/{id}/{action}?endpointId={endpointId}
+                
+                # We need to find the endpointId for this stack. 
+                # The coordinator data should have it if we've synced.
+                stack_info = None
+                
+                # Check if we can find it in the coordinator's cached data
+                # Since we don't have a get_specific_stack, we'll try to find it in the data
+                if coordinator.api.query:
+                    # We can try to get the stack details from the API first to get the endpointId
+                    stack_info = await hass.async_add_executor_job(
+                        coordinator.api.query, f"stacks/{stack_id}", "GET", {}
                     )
+                
+                if not stack_info:
+                    _LOGGER.error("Could not find stack info for stack ID '%s'", stack_id)
                     continue
-                endpoint_id = stack_data.get("EndpointId")
-            except Exception as e:
-                _LOGGER.warning(
-                    "Failed to get stack data for '%s' from Portainer API: %s. Skipping.",
+                    
+                endpoint_id = stack_info.get("EndpointId")
+                if not endpoint_id:
+                    _LOGGER.error("Could not find endpoint ID for stack ID '%s'", stack_id)
+                    continue
+
+                service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
+                _LOGGER.debug(
+                    "Performing '%s' action on stack ID '%s' via path '%s'",
+                    action,
                     stack_id,
-                    e,
+                    service_path,
                 )
-                continue
-
-            service_path = f"stacks/{stack_id}/{action}?endpointId={endpoint_id}"
-
-            try:
                 await call.hass.async_add_executor_job(
                     coordinator.api.query, service_path, "POST", {}
                 )
-                stack_name = stack_data.get("Name", stack_id)
                 if not coordinator.api.error:
                     _LOGGER.info(
                         "Successfully performed '%s' on stack '%s' on instance '%s'",
                         action,
-                        stack_name,
+                        stack_id,
                         coordinator.name,
                     )
                 else:
                     _LOGGER.error(
                         "Failed to perform '%s' on stack '%s' on instance '%s': %s",
                         action,
-                        stack_name,
+                        stack_id,
                         coordinator.name,
                         coordinator.api.error or "unknown error",
                     )
             except Exception as e:
-                stack_name = (
-                    stack_data.get("Name", stack_id)
-                    if "stack_data" in locals()
-                    else stack_id
-                )
                 _LOGGER.error(
                     "Failed to perform '%s' on stack '%s' on instance '%s': %s",
                     action,
-                    stack_name,
+                    stack_id,
                     coordinator.name,
                     e,
                 )
-
         await coordinator.async_request_refresh()
 
 

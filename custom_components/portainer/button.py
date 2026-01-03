@@ -183,9 +183,11 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
         super().__init__(coordinator, description, uid)
         self.entity_description = description
         self.sw_version = None
-        if self._data.get("EndpointId") in self.coordinator.data.get("endpoints", {}):
+        if str(self._data.get("EndpointId")) in self.coordinator.data.get(
+            "endpoints", {}
+        ):
             self.sw_version = self.coordinator.data["endpoints"][
-                self._data["EndpointId"]
+                str(self._data["EndpointId"])
             ].get("DockerVersion")
 
     @property
@@ -281,9 +283,11 @@ class StackActionButton(PortainerEntity, ButtonEntity):
         super().__init__(coordinator, description, uid)
         self.entity_description = description
         self.sw_version = None
-        if self._data.get("EndpointId") in self.coordinator.data.get("endpoints", {}):
+        if str(self._data.get("EndpointId")) in self.coordinator.data.get(
+            "endpoints", {}
+        ):
             self.sw_version = self.coordinator.data["endpoints"][
-                self._data["EndpointId"]
+                str(self._data["EndpointId"])
             ].get("DockerVersion")
 
     @property

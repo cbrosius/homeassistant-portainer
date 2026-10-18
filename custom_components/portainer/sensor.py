@@ -9,24 +9,20 @@ from decimal import Decimal
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import (
-    async_dispatcher_connect,
-)
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_platform as ep
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import (
-    device_registry as dr,
-    entity_platform as ep,
-    entity_registry as er,
-)
 from homeassistant.helpers.typing import StateType
 
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
-    DOMAIN,
-    CUSTOM_ATTRIBUTE_ARRAY,
     CONF_FEATURE_HEALTH_CHECK,
     CONF_FEATURE_RESTART_POLICY,
+    CUSTOM_ATTRIBUTE_ARRAY,
+    DOMAIN,
 )
 from .coordinator import PortainerCoordinator
 from .entity import PortainerEntity, async_create_sensors
@@ -401,11 +397,7 @@ class ContainerSensor(PortainerSensor):
             "manufacturer": "Portainer",
             "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": (
-                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
-                if endpoint_id
-                else None
-            ),
+            "via_device_id": self.get_endpoint_device_id(endpoint_id),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }
 
@@ -465,10 +457,6 @@ class StackSensor(PortainerSensor):
             "manufacturer": "Portainer",
             "model": "Stack",
             "sw_version": self.sw_version,
-            "via_device": (
-                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
-                if endpoint_id
-                else None
-            ),
+            "via_device_id": self.get_endpoint_device_id(endpoint_id),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

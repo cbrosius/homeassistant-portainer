@@ -1,12 +1,13 @@
 """Unit tests for Portainer button platform."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
+
 from custom_components.portainer.button import (
+    BUTTON_TYPES,
     ContainerActionButton,
     StackActionButton,
-    BUTTON_TYPES,
 )
 from custom_components.portainer.const import DOMAIN
 
@@ -108,14 +109,23 @@ class TestPortainerButtons:
         button.hass = mock_hass
         # button._data is already set by PortainerEntity.__init__ because we populated coordinator.data
 
-        device_info = button.device_info
+        with patch(
+            "custom_components.portainer.entity.dr.async_get_device_id_by_identifier",
+            return_value="endpoint-device-id",
+        ) as get_device_id:
+            device_info = button.device_info
 
         assert device_info["name"] == "web-server"
         assert device_info["manufacturer"] == "Portainer"
         assert device_info["model"] == "Container"
         assert device_info["sw_version"] == "24.0.6"
         assert (DOMAIN, "test_entry_id_1_web-server") in device_info["identifiers"]
-        assert device_info["via_device"] == (DOMAIN, "1_test_entry_id")
+        assert device_info["via_device_id"] == "endpoint-device-id"
+        get_device_id.assert_called_once_with(
+            mock_hass,
+            (DOMAIN, "1_test_entry_id"),
+            config_entry_id="test_entry_id",
+        )
 
     def test_container_button_availability_running_state(
         self, mock_hass, mock_coordinator, container_data
@@ -293,14 +303,23 @@ class TestPortainerButtons:
         button = StackActionButton(mock_coordinator, description, uid="1")
         button.hass = mock_hass
 
-        device_info = button.device_info
+        with patch(
+            "custom_components.portainer.entity.dr.async_get_device_id_by_identifier",
+            return_value="endpoint-device-id",
+        ) as get_device_id:
+            device_info = button.device_info
 
         assert device_info["name"] == "web-stack"
         assert device_info["manufacturer"] == "Portainer"
         assert device_info["model"] == "Stack"
         assert device_info["sw_version"] == "24.0.6"
         assert (DOMAIN, "test_entry_id_stack_1") in device_info["identifiers"]
-        assert device_info["via_device"] == (DOMAIN, "1_test_entry_id")
+        assert device_info["via_device_id"] == "endpoint-device-id"
+        get_device_id.assert_called_once_with(
+            mock_hass,
+            (DOMAIN, "1_test_entry_id"),
+            config_entry_id="test_entry_id",
+        )
 
     def test_stack_button_availability_active(
         self, mock_hass, mock_coordinator, stack_data

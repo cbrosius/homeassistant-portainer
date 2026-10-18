@@ -8,15 +8,12 @@ from typing import Any
 
 from homeassistant.const import ATTR_ATTRIBUTION, CONF_HOST, CONF_NAME, CONF_SSL
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
-from .const import (
-    ATTRIBUTION,
-    DOMAIN,
-    CUSTOM_ATTRIBUTE_ARRAY,
-)
+from .const import ATTRIBUTION, CUSTOM_ATTRIBUTE_ARRAY, DOMAIN
 from .coordinator import PortainerCoordinator
 from .helper import format_attribute, format_camel_case
 
@@ -292,3 +289,16 @@ class PortainerEntity(CoordinatorEntity[PortainerCoordinator], Entity):
             entry = self.hass.config_entries.async_get_entry(self.handler)
             return entry.entry_id if entry else self.handler
         return None
+
+    @callback
+    def get_endpoint_device_id(self, endpoint_id: int | str | None) -> str | None:
+        """Return the registry ID of the endpoint device used as the parent."""
+        config_entry_id = self.get_config_entry_id()
+        if endpoint_id is None or config_entry_id is None:
+            return None
+
+        return dr.async_get_device_id_by_identifier(
+            self.hass,
+            (DOMAIN, f"{endpoint_id}_{config_entry_id}"),
+            config_entry_id=config_entry_id,
+        )

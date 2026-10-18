@@ -1,13 +1,15 @@
 """Unit tests for Portainer entity module."""
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from custom_components.portainer.entity import PortainerEntity, async_create_sensors
-from custom_components.portainer.coordinator import PortainerCoordinator
+import pytest
+
 from custom_components.portainer.const import ATTRIBUTION
-from unittest.mock import Mock
+from custom_components.portainer.coordinator import PortainerCoordinator
+from custom_components.portainer.entity import PortainerEntity, async_create_sensors
+from custom_components.portainer.sensor import ContainerSensor, StackSensor
+from custom_components.portainer.sensor_types import SENSOR_TYPES
 
 
 class TestPortainerEntity:
@@ -745,6 +747,48 @@ class TestAsyncCreateSensors:
         device_info = entity.device_info
         assert device_info["connections"] == {("portainer", "local_test_entry_id")}
         assert device_info["name"] == "Test Portainer local"
+
+    def test_container_sensor_uses_endpoint_registry_id(
+        self, mock_coordinator, mock_hass
+    ):
+        """Test a container sensor resolves its parent device registry ID."""
+        mock_coordinator.api = Mock()
+        mock_coordinator.api._url = "http://localhost:9000/api/"
+        entity = ContainerSensor(mock_coordinator, SENSOR_TYPES[1], uid="1_web-server")
+        entity.hass = mock_hass
+
+        with patch(
+            "custom_components.portainer.entity.dr.async_get_device_id_by_identifier",
+            return_value="endpoint-device-id",
+        ) as get_device_id:
+            device_info = entity.device_info
+
+        assert device_info["via_device_id"] == "endpoint-device-id"
+        get_device_id.assert_called_once_with(
+            mock_hass,
+            ("portainer", "1_test_entry_id"),
+            config_entry_id="test_entry_id",
+        )
+
+    def test_stack_sensor_uses_endpoint_registry_id(self, mock_coordinator, mock_hass):
+        """Test a stack sensor resolves its parent device registry ID."""
+        mock_coordinator.api = Mock()
+        mock_coordinator.api._url = "http://localhost:9000/api/"
+        entity = StackSensor(mock_coordinator, SENSOR_TYPES[2], uid="1")
+        entity.hass = mock_hass
+
+        with patch(
+            "custom_components.portainer.entity.dr.async_get_device_id_by_identifier",
+            return_value="endpoint-device-id",
+        ) as get_device_id:
+            device_info = entity.device_info
+
+        assert device_info["via_device_id"] == "endpoint-device-id"
+        get_device_id.assert_called_once_with(
+            mock_hass,
+            ("portainer", "1_test_entry_id"),
+            config_entry_id="test_entry_id",
+        )
 
     def test_entity_unique_id_different_data_paths(self, mock_coordinator):
         """Test entity unique_id for different data paths."""

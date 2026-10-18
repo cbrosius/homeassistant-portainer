@@ -14,7 +14,6 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import CUSTOM_ATTRIBUTE_ARRAY
 
-
 DEVICE_ATTRIBUTES_ENDPOINTS = [
     "Type",
     "Status",

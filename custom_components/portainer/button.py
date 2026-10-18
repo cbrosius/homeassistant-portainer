@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
 
 from homeassistant.components.button import (
     ButtonDeviceClass,
@@ -12,14 +12,13 @@ from homeassistant.components.button import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_platform as ep
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers import (
-    device_registry as dr,
-    entity_platform as ep,
-    entity_registry as er,
-)
-from .const import DOMAIN, CONF_FEATURE_USE_ACTION_BUTTONS
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import CONF_FEATURE_USE_ACTION_BUTTONS, DOMAIN
 from .coordinator import PortainerCoordinator
 from .entity import PortainerEntity, async_create_sensors
 
@@ -261,11 +260,7 @@ class ContainerActionButton(PortainerEntity, ButtonEntity):
             "manufacturer": "Portainer",
             "model": "Container",
             "sw_version": self.sw_version,
-            "via_device": (
-                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
-                if endpoint_id
-                else None
-            ),
+            "via_device_id": self.get_endpoint_device_id(endpoint_id),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }
 
@@ -362,10 +357,6 @@ class StackActionButton(PortainerEntity, ButtonEntity):
             "manufacturer": "Portainer",
             "model": "Stack",
             "sw_version": self.sw_version,
-            "via_device": (
-                (DOMAIN, f"{endpoint_id}_{self.coordinator.config_entry.entry_id}")
-                if endpoint_id
-                else None
-            ),
+            "via_device_id": self.get_endpoint_device_id(endpoint_id),
             "configuration_url": self.coordinator.api._url.rstrip("/api/"),
         }

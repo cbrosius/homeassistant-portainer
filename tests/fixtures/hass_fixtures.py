@@ -1,17 +1,17 @@
 """Home Assistant test fixtures for Portainer integration testing."""
 
-from unittest.mock import MagicMock, AsyncMock, Mock
-from typing import Dict, List, Any, Optional
 import asyncio
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from custom_components.portainer.api import PortainerAPI
 from custom_components.portainer.const import DOMAIN
 from custom_components.portainer.coordinator import PortainerCoordinator
-from custom_components.portainer.api import PortainerAPI
 
 
 # ---------------------------
@@ -176,10 +176,10 @@ def create_mock_portainer_api_disconnected() -> PortainerAPI:
 def create_mock_portainer_api_with_responses() -> PortainerAPI:
     """Create mock PortainerAPI instance with predefined responses."""
     from .api_responses import (
-        get_endpoints_response,
-        get_containers_response,
-        get_stacks_response,
         get_container_inspect_response,
+        get_containers_response,
+        get_endpoints_response,
+        get_stacks_response,
     )
 
     api = create_mock_portainer_api()
@@ -326,9 +326,9 @@ def create_mock_container_entity(
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (
-            DOMAIN,
-            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        "via_device_id": (
+            f"mock-endpoint-{container_key.split('_')[0]}-"
+            f"{coordinator.config_entry_id}"
         ),
     }
     entity.entity_id = f"sensor.portainer_container_{container_key.replace('_', '_')}"
@@ -403,9 +403,9 @@ def create_mock_restart_button_entity(
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (
-            DOMAIN,
-            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        "via_device_id": (
+            f"mock-endpoint-{container_key.split('_')[0]}-"
+            f"{coordinator.config_entry_id}"
         ),
     }
     entity.entity_id = f"button.portainer_restart_{container_key.replace('_', '_')}"
@@ -429,9 +429,9 @@ def create_mock_recreate_button_entity(
         "name": f"Container {container_key.split('_', 1)[-1]}",
         "manufacturer": "Portainer",
         "model": "Container",
-        "via_device": (
-            DOMAIN,
-            f"{container_key.split('_')[0]}_{coordinator.config_entry_id}",
+        "via_device_id": (
+            f"mock-endpoint-{container_key.split('_')[0]}-"
+            f"{coordinator.config_entry_id}"
         ),
     }
     entity.entity_id = f"button.portainer_recreate_{container_key.replace('_', '_')}"
